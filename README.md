@@ -56,7 +56,7 @@ Busca global (Ctrl+K) por número da UC, fazenda, CNPJ, filial e número/chave d
 
 Os itens são classificados pela descrição (`src/lib/xml/classificacao-itens.ts`): consumo (TUSD/TE),
 demanda, reativo, energia injetada, compensação, bandeira, CIP/COSIP, multa, juros, encargos,
-descontos e outros. `indDevolucao=1` é tratado como valor negativo. Quando a soma dos itens difere
+descontos e outros. `indDevolucao=1` é tratado como valor negativo. Créditos de GD são apenas os lançamentos **negativos** de injeção/compensação: a energia “SCEE”/“GD” cobrada pelo preço cheio é consumo, e item de energia negativo em fatura com `gSCEE` é crédito. Após mudanças nas regras, use **Configurações → Cadastro e consolidação → Reprocessar todas as faturas**. Quando a soma dos itens difere
 do total do documento, um aviso é registrado — o total do documento (vNF) é sempre a referência.
 
 ## Regras de cálculo

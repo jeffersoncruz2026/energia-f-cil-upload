@@ -199,7 +199,11 @@ function injetadaMedida(raw: unknown): number | null {
 }
 
 /** kWh dos itens de crédito sem somar duas vezes a mesma energia em TUSD e TE. */
-function creditosDosItens(itens: ItemGd[]): { kwh: number | null; valor: number | null } {
+function creditosDosItens(todos: ItemGd[]): { kwh: number | null; valor: number | null } {
+  // Só os lançamentos negativos são créditos abatidos; itens positivos com
+  // "SCEE"/"GD" na descrição são a energia consumida cobrada antes do abatimento.
+  const negativos = todos.filter((i) => (i.valor_total ?? 0) < 0);
+  const itens = negativos.length ? negativos : todos.filter((i) => i.valor_total == null);
   const energia = itens
     .filter(
       (i) => i.quantidade != null && (i.unidade_medida === "kWh" || i.unidade_medida === "MWh"),

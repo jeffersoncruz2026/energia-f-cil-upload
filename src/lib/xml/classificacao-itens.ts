@@ -72,6 +72,28 @@ export function classificarItem(descricao: string | null | undefined): TipoItem 
   return "outros";
 }
 
+/**
+ * Ajusta a classificação pelo sinal do valor. Na NF3e com SCEE (geração
+ * distribuída) as distribuidoras costumam lançar a energia consumida pelo preço
+ * cheio com "SCEE"/"GD" na descrição (ex.: "Energia SCEE ISENTA", "Consumo SCEE")
+ * e, em outro item, o crédito abatido com valor negativo. Somar os dois como
+ * "compensação" anularia o crédito; por isso:
+ * - item de compensação com valor positivo e sem indicar crédito/injeção é consumo;
+ * - item de energia com valor negativo em fatura com gSCEE é crédito compensado.
+ */
+export function ajustarTipoPeloValor(
+  tipo: TipoItem,
+  descricao: string | null | undefined,
+  valor: number | null,
+  faturaComScee: boolean,
+): TipoItem {
+  if (valor == null || valor === 0) return tipo;
+  const d = normalizarTexto(descricao);
+  if (tipo === "compensacao" && valor > 0 && !/COMPENSAD|CREDITO|INJET/.test(d)) return "consumo";
+  if (tipo === "consumo" && valor < 0 && faturaComScee) return "compensacao";
+  return tipo;
+}
+
 export function identificarComponente(descricao: string | null | undefined): Componente {
   const d = normalizarTexto(descricao);
   if (/\bTUSD\b|USO DO SISTEMA|USO SIST|DISTRIBUICAO/.test(d)) return "TUSD";
