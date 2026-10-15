@@ -7,8 +7,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { gerarAlertas } from "@/lib/analise/alertas";
+import {
+  CAMPOS_FATURA_SOLAR,
+  gerarAlertasSolar,
+  montarDadosGd,
+  type FaturaSolarEntrada,
+} from "@/lib/analise/solar";
 import type { FaturaAnalise, UcAnalise } from "@/lib/analise/calculos";
-import { buscarTodos, CAMPOS_FATURA_ANALISE } from "@/lib/consulta-paginada";
+import { buscarItensGd, buscarTodos, CAMPOS_FATURA_ANALISE } from "@/lib/consulta-paginada";
 import { normalizarUc } from "@/lib/documentos";
 import { CONFIG_ALERTAS_PADRAO, type ConfigAlertas } from "@/lib/tipos";
 import {
@@ -407,7 +413,7 @@ export const recalcularAlertas = createServerFn({ method: "POST" })
     const { supabase } = context;
     await exigirPermissao(supabase, "importar");
     try {
-      const [faturas, ucs, cfgRes] = await Promise.all([
+      const [faturas, ucs, cfgRes, faturasSolar, itensGd] = await Promise.all([
         buscarTodos<FaturaAnalise>(supabase, "faturas", CAMPOS_FATURA_ANALISE, { excluida: false }),
         buscarTodos<UcAnalise>(
           supabase,
@@ -415,12 +421,19 @@ export const recalcularAlertas = createServerFn({ method: "POST" })
           "id, numero_uc, fazenda, cnpj, filial, situacao, area",
         ),
         supabase.from("configuracoes").select("valor").eq("chave", "alertas").maybeSingle(),
+        buscarTodos<FaturaSolarEntrada>(supabase, "faturas", CAMPOS_FATURA_SOLAR, {
+          excluida: false,
+        }),
+        buscarItensGd(supabase),
       ]);
       const cfg: ConfigAlertas = {
         ...CONFIG_ALERTAS_PADRAO,
         ...((cfgRes.data?.valor as Partial<ConfigAlertas>) ?? {}),
       };
-      const alertas = gerarAlertas(faturas, ucs, cfg);
+      const alertas = [
+        ...gerarAlertas(faturas, ucs, cfg),
+        ...gerarAlertasSolar(montarDadosGd(faturasSolar, itensGd), ucs, cfg),
+      ];
       const { data, error } = await supabase.rpc("salvar_alertas", { p_alertas: alertas });
       if (error) throw error;
       return data as { novos: number; desativados: number; total: number };

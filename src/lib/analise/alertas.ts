@@ -36,7 +36,11 @@ export type TipoAlerta =
   | "possivel_duplicidade"
   | "consumo_zerado_negativo"
   | "variacao_componente"
-  | "custo_acima_semelhantes";
+  | "custo_acima_semelhantes"
+  | "queda_injecao_solar"
+  | "creditos_expirados"
+  | "creditos_a_expirar"
+  | "saldo_creditos_elevado";
 
 export const ROTULOS_TIPO_ALERTA: Record<TipoAlerta, string> = {
   aumento_consumo: "Aumento de consumo",
@@ -47,6 +51,10 @@ export const ROTULOS_TIPO_ALERTA: Record<TipoAlerta, string> = {
   consumo_zerado_negativo: "Consumo zerado/negativo",
   variacao_componente: "Variação de componente tarifário",
   custo_acima_semelhantes: "Custo acima de UCs semelhantes",
+  queda_injecao_solar: "Solar: queda na energia injetada",
+  creditos_expirados: "Solar: créditos expirados",
+  creditos_a_expirar: "Solar: créditos a expirar",
+  saldo_creditos_elevado: "Solar: saldo de créditos elevado",
 };
 
 interface Mes {

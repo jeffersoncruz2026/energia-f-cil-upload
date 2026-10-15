@@ -147,6 +147,20 @@ const CAMPOS_ALERTA: {
     min: 1,
     max: 24,
   },
+  {
+    campo: "solar_queda_injecao_pct",
+    rotulo: "Solar: queda da energia injetada vs. média",
+    sufixo: "%",
+    min: 1,
+    max: 100,
+  },
+  {
+    campo: "solar_meses_saldo_excessivo",
+    rotulo: "Solar: saldo de créditos acima de",
+    sufixo: "meses de uso",
+    min: 1,
+    max: 60,
+  },
 ];
 
 function ConfigAnalise() {

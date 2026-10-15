@@ -50,6 +50,18 @@ export interface OpcoesNF3e {
   finNF3e?: string;
   chaveSubstituida?: string;
   demandaContratada?: number;
+  scee?: {
+    tpPartComp?: string;
+    idAcessGer?: string;
+    vPotInst?: number;
+    tpFonteEnergia?: string;
+    enerAloc?: number;
+    vSaldAnt?: number;
+    vCredExpirado?: number;
+    vSaldAtual?: number;
+    vCredExpirar?: number;
+    CompetExpirar?: string;
+  };
 }
 
 export const ITENS_PADRAO: ItemFixture[] = [
@@ -109,6 +121,11 @@ export function gerarNF3e(o: OpcoesNF3e = {}): string {
     ${o.uc === null ? "" : `<acessante><idAcesso>${o.uc ?? "000123456"}</idAcesso><idCodCliente>998877</idCodCliente><tpAcesso>0</tpAcesso><xNomeUC>Fazenda Boa Vista - Pivo 1</xNomeUC><tpClasse>07</tpClasse><tpSubClasse>71</tpSubClasse><tpFase>3</tpFase><tpGrpTensao>05</tpGrpTensao><tpModTar>01</tpModTar></acessante>`}
     ${o.chaveSubstituida ? `<gSub><chNF3e>${o.chaveSubstituida}</chNF3e><motSub>01</motSub></gSub>` : ""}
     ${o.demandaContratada != null ? `<gGrContrat nContrat="1"><tpGrContrat>1</tpGrContrat><tpPosTar>0</tpPosTar><qUnidContrat>${o.demandaContratada}</qUnidContrat></gGrContrat>` : ""}
+    ${
+      o.scee
+        ? `<gSCEE><tpPartComp>${o.scee.tpPartComp ?? "1"}</tpPartComp><gConsumidor><idAcessGer>${o.scee.idAcessGer ?? "000123456"}</idAcessGer><vPotInst>${o.scee.vPotInst ?? 75}</vPotInst><tpFonteEnergia>${o.scee.tpFonteEnergia ?? "2"}</tpFonteEnergia><enerAloc>${o.scee.enerAloc ?? 0}</enerAloc><tpPosTar>0</tpPosTar></gConsumidor><gSaldoCred><tpPosTar>0</tpPosTar><vSaldAnt>${o.scee.vSaldAnt ?? 0}</vSaldAnt><vCredExpirado>${o.scee.vCredExpirado ?? 0}</vCredExpirado><vSaldAtual>${o.scee.vSaldAtual ?? 0}</vSaldAtual><vCredExpirar>${o.scee.vCredExpirar ?? 0}</vCredExpirar>${o.scee.CompetExpirar ? `<CompetExpirar>${o.scee.CompetExpirar}</CompetExpirar>` : ""}</gSaldoCred></gSCEE>`
+        : ""
+    }
     <gMed nMed="1"><idMedidor>MED123</idMedidor><dMedAnt>${o.dMedAnt ?? "2026-01-03"}</dMedAnt><dMedAtu>${o.dMedAtu ?? "2026-02-02"}</dMedAtu></gMed>
     <NFdet>
       ${dets}

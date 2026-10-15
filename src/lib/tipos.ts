@@ -164,6 +164,10 @@ export interface ConfigAlertas {
   historico_minimo_meses: number;
   considerar_dias_faturados: boolean;
   considerar_sazonalidade: boolean;
+  /** Queda da energia injetada (GD) em relação à média histórica, em %. */
+  solar_queda_injecao_pct: number;
+  /** Saldo de créditos acima de N meses de uso médio gera alerta. */
+  solar_meses_saldo_excessivo: number;
 }
 
 export const CONFIG_ALERTAS_PADRAO: ConfigAlertas = {
@@ -176,6 +180,8 @@ export const CONFIG_ALERTAS_PADRAO: ConfigAlertas = {
   historico_minimo_meses: 3,
   considerar_dias_faturados: true,
   considerar_sazonalidade: true,
+  solar_queda_injecao_pct: 30,
+  solar_meses_saldo_excessivo: 6,
 };
 
 export interface ConfigCadastroUc {
