@@ -53,7 +53,8 @@ function parseXml(fileName: string, content: string): Fatura | null {
   let consumo: number | null = null;
   const medidas = doc.getElementsByTagName("gMedida");
   for (let i = 0; i < medidas.length; i++) {
-    const m = medidas[i];
+    const m = medidas.item(i);
+    if (!m) continue;
     const ant = parseFloat(m.getElementsByTagName("vMedAnt")[0]?.textContent ?? "");
     const atu = parseFloat(m.getElementsByTagName("vMedAtu")[0]?.textContent ?? "");
     const cons = parseFloat(m.getElementsByTagName("vConst")[0]?.textContent ?? "1");
