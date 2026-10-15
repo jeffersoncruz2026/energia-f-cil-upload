@@ -19,7 +19,7 @@ export const REGRAS_CALCULO = [
   {
     titulo: "Custo da energia (base padrão)",
     texto:
-      "Custo da energia ANTES da compensação de créditos de geração distribuída: valor total do documento (vNF) + créditos de energia abatidos na fatura (somente os lançamentos negativos de energia injetada/compensada; a energia “SCEE”/“GD” cobrada pelo preço cheio é consumo, não crédito). Assim o custo real da energia aparece mesmo quando a fatura sai com valor zero ou reduzido pelos créditos. Nos filtros é possível trocar para “Valor faturado (líquido)”, que usa apenas o vNF. Subtotais e componentes (TUSD, TE, tributos etc.) nunca são somados ao total, para não duplicar valores.",
+      "Custo da energia ANTES da compensação de créditos de geração distribuída: valor total do documento (vNF) + créditos abatidos na fatura: lançamentos negativos de energia injetada/compensada (GD) e créditos de consumo/devoluções lançados pela distribuidora (ex.: “CRÉDITO DE CONSUMO”). A energia “SCEE”/“GD” cobrada pelo preço cheio é consumo, não crédito. Créditos informados com valor positivo no XML são tratados como abatimento quando a soma dos itens só fecha com o vNF dessa forma. Assim o custo real da energia aparece mesmo quando a fatura sai com valor zero ou reduzido pelos créditos. Nos filtros é possível trocar para “Valor faturado (líquido)”, que usa apenas o vNF. Subtotais e componentes (TUSD, TE, tributos etc.) nunca são somados ao total, para não duplicar valores.",
   },
   {
     titulo: "Consumo total",

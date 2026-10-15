@@ -194,7 +194,7 @@ function DetalheFatura() {
     ["Multas", f.valor_multas],
     ["Juros", f.valor_juros],
     ["Encargos", f.valor_encargos],
-    ["Compensação (GD)", f.valor_compensacao],
+    ["Créditos abatidos (GD e consumo)", f.valor_compensacao],
     ["Descontos", f.valor_descontos != null ? -f.valor_descontos : null],
     ["Outros", f.valor_outros],
   ];
@@ -524,7 +524,7 @@ function DetalheFatura() {
                 </span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>(−) Créditos de energia abatidos</span>
+                <span>(−) Créditos abatidos</span>
                 <span className="tabular">{formatarMoeda(-creditosDaFatura(f))}</span>
               </div>
               <div className="flex justify-between text-sm font-medium">

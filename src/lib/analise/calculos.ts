@@ -103,7 +103,7 @@ export const ROTULOS_BASE_CUSTO: Record<BaseCusto, string> = {
   faturado: "Valor faturado (líquido)",
 };
 
-/** R$ abatidos na fatura por créditos de energia (valor positivo). */
+/** R$ abatidos na fatura por créditos (GD e créditos de consumo), valor positivo. */
 export function creditosDaFatura(f: Pick<FaturaAnalise, "valor_compensacao">): number {
   return f.valor_compensacao != null && f.valor_compensacao < 0 ? -f.valor_compensacao : 0;
 }
@@ -390,7 +390,7 @@ export const COMPONENTES: { campo: keyof FaturaAnalise; rotulo: string }[] = [
   { campo: "valor_multas", rotulo: "Multas" },
   { campo: "valor_juros", rotulo: "Juros" },
   { campo: "valor_encargos", rotulo: "Encargos" },
-  { campo: "valor_compensacao", rotulo: "Compensação (GD)" },
+  { campo: "valor_compensacao", rotulo: "Créditos abatidos (GD e consumo)" },
   { campo: "valor_outros", rotulo: "Outros" },
 ];
 

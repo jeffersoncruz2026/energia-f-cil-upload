@@ -236,8 +236,9 @@ export function extrairGd(f: FaturaSolarEntrada, itens: ItemGd[]): DadosGd | nul
   const creditosKwh =
     itensCredito.kwh ??
     (f.energia_compensada_kwh != null ? Math.abs(f.energia_compensada_kwh) : null);
-  const economia =
-    itensCredito.valor ?? (f.valor_compensacao != null ? Math.abs(f.valor_compensacao) : null);
+  // valor_compensacao também inclui créditos de consumo (não GD): a economia solar
+  // vem só dos itens de injeção/compensação.
+  const economia = itensCredito.valor;
   const temGd =
     !!scee ||
     (injetada ?? 0) > 0 ||

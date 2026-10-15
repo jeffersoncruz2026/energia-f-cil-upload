@@ -199,6 +199,59 @@ describe("leitura de NF3e", () => {
     expect(semScee.fatura.valor_compensacao).toBeNull();
   });
 
+  it("créditos de consumo com vProd positivo são abatimento quando o vNF os desconta", () => {
+    const { fatura, itens, avisos } = lerFatura(
+      gerarNF3e({
+        vNF: 0,
+        itens: [
+          { descricao: "CONSUMO", qtd: 1206.76, uMed: "2", vProd: 1358.72 },
+          { descricao: "CRÉDITO DE CONSUMO - 01/2026", qtd: 1, uMed: "5", vProd: 283.68 },
+          { descricao: "CRÉDITO DE CONSUMO - 02/2026", qtd: 1, uMed: "5", vProd: 870.78 },
+          {
+            descricao: "DEV. ICMS COB. A MAIOR (-) - CRÉDITO DE CONSUMO - 02/2026",
+            qtd: 1,
+            uMed: "5",
+            vProd: 204.26,
+          },
+        ],
+      }),
+    );
+    expect(itens.map((i) => [i.tipo_item, i.valor_total])).toEqual([
+      ["consumo", 1358.72],
+      ["credito", -283.68],
+      ["credito", -870.78],
+      ["credito", -204.26],
+    ]);
+    expect(fatura.consumo_kwh).toBe(1206.76);
+    expect(fatura.valor_energia).toBe(1358.72);
+    expect(fatura.valor_total).toBe(0);
+    expect(fatura.valor_compensacao).toBe(-1358.72);
+    expect(custoDaFatura(fatura)).toBe(1358.72);
+    expect(custoDaFatura(fatura, "faturado")).toBe(0);
+    expect(avisos.join(" ")).toMatch(/tratados como abatimento/);
+    expect(avisos.join(" ")).not.toMatch(/difere do valor total/);
+  });
+
+  it("não inverte o sinal do crédito quando a soma dos itens já confere com o vNF", () => {
+    const { fatura, itens } = lerFatura(
+      gerarNF3e({
+        itens: [
+          { descricao: "CONSUMO", qtd: 1000, uMed: "2", vProd: 900 },
+          {
+            descricao: "CRÉDITO DE CONSUMO - 01/2026",
+            qtd: 1,
+            uMed: "5",
+            vProd: 100,
+            devolucao: true,
+          },
+        ],
+      }),
+    );
+    expect(itens[1]!.valor_total).toBe(-100);
+    expect(fatura.valor_total).toBe(800);
+    expect(custoDaFatura(fatura)).toBe(900);
+  });
+
   it("identifica documento sem protocolo e documento substituto", () => {
     const semProt = lerFatura(gerarNF3e({ protocolo: false }));
     expect(semProt.fatura.status_documento).toBe("sem_protocolo");
