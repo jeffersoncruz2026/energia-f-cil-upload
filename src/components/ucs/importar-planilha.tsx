@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 import { invalidarDados, mensagemErro, useConfiguracoes } from "@/lib/consultas";
 import { formatarCnpj } from "@/lib/formatacao";
@@ -122,7 +123,7 @@ export function ImportarPlanilha({
     if (!leitura || !arquivo) return;
     setGravando(true);
     const { data, error } = await supabase.rpc("importar_ucs", {
-      p_registros: leitura.registros,
+      p_registros: leitura.registros as unknown as Json,
       p_modo: modo,
       p_nome_arquivo: arquivo.name,
     });
@@ -131,7 +132,7 @@ export function ImportarPlanilha({
       toast.error(mensagemErro(error, "Falha ao importar a planilha."));
       return;
     }
-    const r = data as ResultadoBanco;
+    const r = data as unknown as ResultadoBanco;
     setResultado(r);
     await invalidarDados(qc);
     toast.success(

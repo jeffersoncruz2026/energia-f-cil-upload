@@ -1,7 +1,8 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { supabase, supabaseConfigurado } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { backendConfigurado } from "@/lib/configuracao-backend";
 
 import type { Papel, Permissao } from "./tipos";
 
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    if (!supabaseConfigurado) {
+    if (!backendConfigurado) {
       setCarregando(false);
       return;
     }

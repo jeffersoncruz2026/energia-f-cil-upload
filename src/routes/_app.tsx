@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 
 import { LayoutApp } from "@/components/app/layout-app";
 import { ConfiguracaoPendente } from "@/components/app/configuracao-pendente";
-import { supabaseConfigurado } from "@/integrations/supabase/client";
+import { backendConfigurado } from "@/lib/configuracao-backend";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app")({
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app")({
 function AreaAutenticada() {
   const { carregando, sessao, papel } = useAuth();
 
-  if (!supabaseConfigurado) return <ConfiguracaoPendente />;
+  if (!backendConfigurado) return <ConfiguracaoPendente />;
   if (carregando) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">

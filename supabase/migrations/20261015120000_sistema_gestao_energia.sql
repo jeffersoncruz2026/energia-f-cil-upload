@@ -1336,3 +1336,38 @@ create policy "faturas_xml_select" on storage.objects for select to authenticate
   using (bucket_id = 'faturas-xml' and public.tem_permissao('visualizar'));
 create policy "faturas_xml_insert" on storage.objects for insert to authenticated
   with check (bucket_id = 'faturas-xml' and public.tem_permissao('importar'));
+
+-- -----------------------------------------------------------------------------
+-- 13. Grants do Data API
+-- O PostgREST não concede privilégios padrão no schema public, então cada table
+-- pública recebe apenas as operações previstas nas políticas RLS acima.
+-- -----------------------------------------------------------------------------
+grant select, update on public.perfis to authenticated;
+grant all on public.perfis to service_role;
+
+grant select, insert, delete on public.user_roles to authenticated;
+grant all on public.user_roles to service_role;
+
+grant select, update on public.configuracoes to authenticated;
+grant all on public.configuracoes to service_role;
+
+grant select, insert, update, delete on public.unidades_consumidoras to authenticated;
+grant all on public.unidades_consumidoras to service_role;
+
+grant select, insert, update on public.historico_importacoes to authenticated;
+grant all on public.historico_importacoes to service_role;
+
+grant select on public.faturas to authenticated;
+grant all on public.faturas to service_role;
+
+grant select on public.itens_fatura to authenticated;
+grant all on public.itens_fatura to service_role;
+
+grant select on public.eventos_fiscais to authenticated;
+grant all on public.eventos_fiscais to service_role;
+
+grant select on public.alertas to authenticated;
+grant all on public.alertas to service_role;
+
+grant select on public.log_operacoes to authenticated;
+grant all on public.log_operacoes to service_role;

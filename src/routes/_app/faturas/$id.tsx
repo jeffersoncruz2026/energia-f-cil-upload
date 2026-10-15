@@ -40,7 +40,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { BUCKET_XML, supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { BUCKET_XML } from "@/lib/configuracao-backend";
 import { useAuth } from "@/lib/auth";
 import { CHAVES, invalidarDados, mensagemErro } from "@/lib/consultas";
 import {
@@ -618,8 +619,9 @@ function DialogoPagamento({
     setSalvando(true);
     const { error } = await supabase.rpc("registrar_pagamento", {
       p_fatura_id: fatura.id,
-      p_data: confirmar ? data : null,
-      p_valor: confirmar ? v : null,
+      // null limpa o pagamento no banco; o tipo gerado não prevê o valor nulo.
+      p_data: (confirmar ? data : null) as unknown as string,
+      p_valor: (confirmar ? v : null) as unknown as number,
     });
     setSalvando(false);
     if (error) {

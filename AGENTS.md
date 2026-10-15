@@ -8,3 +8,8 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Project-owned backend constants and config flags (bucket names, "is the backend
+  connected" checks) live in `src/lib/configuracao-backend.ts`, never in
+  `src/integrations/supabase/` — the platform rewrites those generated files
+  whenever the backend changes, which silently breaks any export added there.
