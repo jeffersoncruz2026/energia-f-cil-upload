@@ -74,7 +74,7 @@ function parseXml(fileName: string, content: string): Fatura | null {
     emissao: text(doc, "dhEmi").slice(0, 10),
     vencimento: text(doc, "dVencFat"),
     distribuidora: text(doc, "xNome"),
-    cliente: text(doc, "dest") ? "" : "",
+    cliente: doc.getElementsByTagName("xNome")[1]?.textContent?.trim() ?? "",
     valor: isNaN(vNF) ? 0 : vNF,
     consumoKwh: consumo,
   };
