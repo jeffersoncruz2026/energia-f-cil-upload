@@ -36,7 +36,7 @@ function Login() {
   const [nome, setNome] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  if (!supabaseConfigurado) return <ConfiguracaoPendente />;
+  if (!backendConfigurado) return <ConfiguracaoPendente />;
   if (!carregando && sessao) return <Navigate to="/dashboard" />;
 
   const entrar = async (e: FormEvent) => {

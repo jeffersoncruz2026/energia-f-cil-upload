@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app")({
 function AreaAutenticada() {
   const { carregando, sessao, papel } = useAuth();
 
-  if (!supabaseConfigurado) return <ConfiguracaoPendente />;
+  if (!backendConfigurado) return <ConfiguracaoPendente />;
   if (carregando) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">

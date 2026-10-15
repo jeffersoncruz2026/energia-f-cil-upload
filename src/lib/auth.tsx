@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    if (!supabaseConfigurado) {
+    if (!backendConfigurado) {
       setCarregando(false);
       return;
     }
