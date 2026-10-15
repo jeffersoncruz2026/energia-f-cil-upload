@@ -54,6 +54,7 @@ import {
   type BaseCusto,
 } from "@/lib/analise/calculos";
 import { chaveMes, somarMeses, variacaoPercentual } from "@/lib/analise/periodos";
+import { ehAmbienteEdicao } from "@/lib/ambiente";
 import { useAuth } from "@/lib/auth";
 import { buscarTodos } from "@/lib/consulta-paginada";
 import { CHAVES, mensagemErro, useConfiguracoes, useUcs } from "@/lib/consultas";
@@ -383,11 +384,13 @@ function DetalheUc() {
   return (
     <div className="space-y-5">
       <div>
-        <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
-          <Link to="/unidades">
-            <ArrowLeft className="mr-1 h-4 w-4" /> Unidades consumidoras
-          </Link>
-        </Button>
+        {ehAmbienteEdicao() && (
+          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
+            <Link to="/unidades">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Unidades consumidoras
+            </Link>
+          </Button>
+        )}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2">

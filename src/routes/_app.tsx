@@ -1,8 +1,9 @@
-import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 
 import { LayoutApp } from "@/components/app/layout-app";
 import { ConfiguracaoPendente } from "@/components/app/configuracao-pendente";
+import { ehAmbienteEdicao, rotaSoEdicao } from "@/lib/ambiente";
 import { backendConfigurado } from "@/lib/configuracao-backend";
 import { useAuth } from "@/lib/auth";
 
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_app")({
 
 function AreaAutenticada() {
   const { carregando, sessao, papel } = useAuth();
+  const caminho = useRouterState({ select: (s) => s.location.pathname });
 
   if (!backendConfigurado) return <ConfiguracaoPendente />;
   if (carregando) {
@@ -23,6 +25,8 @@ function AreaAutenticada() {
     );
   }
   if (!sessao) return <Navigate to="/login" />;
+  // Telas de administração só no ambiente de edição (Lovable); no publicado, volta ao dashboard.
+  if (!ehAmbienteEdicao() && rotaSoEdicao(caminho)) return <Navigate to="/dashboard" />;
   if (!papel) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4 text-center text-sm text-muted-foreground">

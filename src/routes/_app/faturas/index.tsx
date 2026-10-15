@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { mensagemErro } from "@/lib/consultas";
+import { ehAmbienteEdicao } from "@/lib/ambiente";
 
 export const Route = createFileRoute("/_app/faturas/")({
   head: () => ({ meta: [{ title: "Faturas — Controle Energia" }] }),
@@ -68,11 +69,13 @@ function PaginaFaturas() {
         titulo="Faturas"
         descricao="Documentos fiscais importados. O valor faturado não é considerado pago até a confirmação do pagamento."
         acoes={
-          <Button asChild>
-            <Link to="/importar">
-              <Upload className="mr-2 h-4 w-4" /> Importar XML
-            </Link>
-          </Button>
+          ehAmbienteEdicao() && (
+            <Button asChild>
+              <Link to="/importar">
+                <Upload className="mr-2 h-4 w-4" /> Importar XML
+              </Link>
+            </Button>
+          )
         }
       />
       {error ? (
@@ -85,9 +88,11 @@ function PaginaFaturas() {
           titulo="Nenhuma fatura importada"
           descricao="Importe os XMLs das contas de energia para começar."
           acao={
-            <Button asChild>
-              <Link to="/importar">Importar XML</Link>
-            </Button>
+            ehAmbienteEdicao() && (
+              <Button asChild>
+                <Link to="/importar">Importar XML</Link>
+              </Button>
+            )
           }
         />
       ) : (

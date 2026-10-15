@@ -53,6 +53,7 @@ import {
   type FaturaAnalise,
 } from "@/lib/analise/calculos";
 import { useFiltrosAnalise } from "@/lib/analise/use-filtros";
+import { ehAmbienteEdicao } from "@/lib/ambiente";
 import { useAuth } from "@/lib/auth";
 import {
   mensagemErro,
@@ -168,7 +169,7 @@ function Dashboard() {
         acoes={
           <>
             <BotaoMetodologia />
-            {pode("importar") && (
+            {pode("importar") && ehAmbienteEdicao() && (
               <Button asChild size="sm">
                 <Link to="/importar">
                   <Upload className="mr-1.5 h-4 w-4" /> Importar XML
@@ -189,20 +190,22 @@ function Dashboard() {
               : "Comece cadastrando as unidades consumidoras e depois importe os XMLs das contas de energia."
           }
           acao={
-            <div className="flex flex-wrap justify-center gap-2">
-              {!ucs.length && (
-                <Button variant="outline" asChild>
-                  <Link to="/unidades">
-                    <Building2 className="mr-2 h-4 w-4" /> Cadastrar UCs
+            ehAmbienteEdicao() && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {!ucs.length && (
+                  <Button variant="outline" asChild>
+                    <Link to="/unidades">
+                      <Building2 className="mr-2 h-4 w-4" /> Cadastrar UCs
+                    </Link>
+                  </Button>
+                )}
+                <Button asChild>
+                  <Link to="/importar">
+                    <Upload className="mr-2 h-4 w-4" /> Importar primeiras faturas
                   </Link>
                 </Button>
-              )}
-              <Button asChild>
-                <Link to="/importar">
-                  <Upload className="mr-2 h-4 w-4" /> Importar primeiras faturas
-                </Link>
-              </Button>
-            </div>
+              </div>
+            )
           }
         />
       ) : (
@@ -307,9 +310,13 @@ function Dashboard() {
               icone={Inbox}
               valor={formatarNumero((pendentes ?? 0) + analise.comDivergencia)}
               detalhe={
-                <Link to="/pendencias" className="underline-offset-2 hover:underline">
-                  {pendentes ?? 0} de identificação · {analise.comDivergencia} a validar
-                </Link>
+                ehAmbienteEdicao() ? (
+                  <Link to="/pendencias" className="underline-offset-2 hover:underline">
+                    {pendentes ?? 0} de identificação · {analise.comDivergencia} a validar
+                  </Link>
+                ) : (
+                  `${pendentes ?? 0} de identificação · ${analise.comDivergencia} a validar`
+                )
               }
               ajuda="Faturas sem UC identificada (fora dos indicadores) + faturas do período com divergência ou sem protocolo de autorização."
             />
