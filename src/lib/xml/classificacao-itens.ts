@@ -45,7 +45,9 @@ export function normalizarTexto(s: string | null | undefined): string {
 export function classificarItem(descricao: string | null | undefined): TipoItem {
   const d = normalizarTexto(descricao);
   if (!d) return "outros";
-  if (/\b(DIC|FIC|DMIC|DICRI)\b/.test(d)) return "desconto";
+  // Compensação por violação dos indicadores de continuidade (DIC/FIC/DMIC/DICRI):
+  // crédito pago pela distribuidora ao consumidor.
+  if (/\b(DIC|FIC|DMIC|DICRI)\b/.test(d)) return "credito";
   if (/INJETAD|INJECAO|\bENERGIA INJ|\bINJ\b/.test(d)) return "injecao";
   if (
     /COMPENS|CREDITO DE ENERGIA|CREDITOS DE ENERGIA|\bSCEE\b|\bGD\b|GERACAO DISTRIBUIDA/.test(d)

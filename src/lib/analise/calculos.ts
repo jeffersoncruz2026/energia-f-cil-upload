@@ -108,7 +108,7 @@ export function faturaSemValorAPagar(f: Pick<FaturaAnalise, "valor_total">): boo
   return f.valor_total != null && f.valor_total <= 0.005;
 }
 
-/** Créditos (GD e créditos de consumo) informados no documento, valor positivo. */
+/** Créditos da distribuidora (consumo, DIC/FIC…; exceto energia solar) no documento, valor positivo. */
 export function creditosNoDocumento(f: Pick<FaturaAnalise, "valor_compensacao">): number {
   return f.valor_compensacao != null && f.valor_compensacao < 0 ? -f.valor_compensacao : 0;
 }
@@ -406,7 +406,7 @@ export const COMPONENTES: { campo: keyof FaturaAnalise; rotulo: string }[] = [
   { campo: "valor_multas", rotulo: "Multas" },
   { campo: "valor_juros", rotulo: "Juros" },
   { campo: "valor_encargos", rotulo: "Encargos" },
-  { campo: "valor_compensacao", rotulo: "Créditos abatidos (GD e consumo)" },
+  { campo: "valor_compensacao", rotulo: "Créditos abatidos (exceto energia solar)" },
   { campo: "valor_outros", rotulo: "Outros" },
 ];
 

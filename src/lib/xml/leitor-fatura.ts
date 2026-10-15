@@ -318,18 +318,21 @@ function somarEnergiaSemDuplicar(itens: ItemExtraido[]): number | null {
 }
 
 /**
- * Algumas distribuidoras (ex.: Equatorial) lançam créditos ("CRÉDITO DE CONSUMO",
- * "DEV. ICMS COB. A MAIOR (-)") com vProd positivo e sem indDevolucao, embora o
- * vNF os desconte. Quando inverter o sinal desses itens faz a soma dos itens
+ * Algumas distribuidoras (ex.: Equatorial) lançam os abatimentos — "CRÉDITO DE
+ * CONSUMO", "COMPENSAÇÃO DE DIC", "INJEÇÃO SCEE … GD" — com vProd positivo e sem
+ * indDevolucao, embora o vNF os desconte. Quando inverter o sinal desses itens
+ * (créditos, injeção/compensação de GD ou cClass do grupo 5) faz a soma dos itens
  * fechar com o vNF, eles são tratados como abatimentos (valor negativo).
  */
+const TIPOS_ABATIMENTO: TipoItem[] = ["credito", "injecao", "compensacao"];
+
 function ajustarSinalDosCreditos(itens: ItemExtraido[], vNF: number | null, avisos: string[]) {
   if (vNF == null) return;
   const candidatos = itens.filter(
     (i) =>
       (i.valor_total ?? 0) > 0 &&
       i.dados_adicionais_json["indDevolucao"] !== "1" &&
-      (i.tipo_item === "credito" || /^59/.test(i.codigo_classificacao ?? "")),
+      (TIPOS_ABATIMENTO.includes(i.tipo_item) || /^5/.test(i.codigo_classificacao ?? "")),
   );
   if (!candidatos.length) return;
   const soma = somar(itens.map((i) => i.valor_total)) ?? 0;
@@ -338,7 +341,8 @@ function ajustarSinalDosCreditos(itens: ItemExtraido[], vNF: number | null, avis
   for (const i of candidatos) {
     i.valor_total = -(i.valor_total ?? 0);
     if (i.quantidade != null && i.quantidade > 0) i.quantidade = -i.quantidade;
-    if (i.tipo_item !== "desconto") i.tipo_item = "credito";
+    // Injeção/compensação seguem como crédito de energia solar (GD); o resto é crédito.
+    if (i.tipo_item !== "injecao" && i.tipo_item !== "compensacao") i.tipo_item = "credito";
     i.dados_adicionais_json["sinalInvertido"] = true;
   }
   avisos.push(
@@ -564,6 +568,16 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
   // Valores
   const valorTotal = num(txt(total, "vNF"));
   if (valorTotal == null) avisos.push("Valor total do documento (vNF) indisponível.");
+  if (
+    valorTotal != null &&
+    Math.abs(valorTotal) <= 0.005 &&
+    itensAtuais.some((i) => (i.valor_total ?? 0) > 0) &&
+    !itensAtuais.some((i) => (i.valor_total ?? 0) < 0)
+  ) {
+    avisos.push(
+      "Fatura zerada sem créditos identificados: verifique os itens — o custo da energia pode estar subestimado.",
+    );
+  }
   const icmsTotal = num(txt(total, "ICMSTot", "vICMS"));
   const pisTotal = num(txt(total, "vPIS"));
   const cofinsTotal = num(txt(total, "vCOFINS"));
@@ -609,13 +623,10 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
     valor_juros: somaValor(porTipo("juros")),
     valor_encargos: somaValor(porTipo("encargo")),
     valor_descontos: descontos == null ? null : Math.abs(descontos),
-    // Créditos abatidos = lançamentos negativos de injeção/compensação (GD) e
-    // créditos de consumo/devoluções lançados pela distribuidora.
-    valor_compensacao: somaValor(
-      [...porTipo("injecao"), ...porTipo("compensacao"), ...porTipo("credito")].filter(
-        (i) => (i.valor_total ?? 0) < 0,
-      ),
-    ),
+    // Créditos abatidos que compõem o custo da fatura zerada: créditos de consumo,
+    // compensações DIC/FIC etc. Créditos de energia solar (GD) não entram: reduzem o
+    // custo e são analisados na aba Solar a partir dos itens de injeção/compensação.
+    valor_compensacao: somaValor(porTipo("credito").filter((i) => (i.valor_total ?? 0) < 0)),
     valor_outros: somaValor([...porTipo("outros"), ...porTipo("tributo")]),
   };
 

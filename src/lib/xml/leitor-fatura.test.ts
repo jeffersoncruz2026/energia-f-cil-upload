@@ -114,7 +114,8 @@ describe("leitura de NF3e", () => {
     );
     expect(fatura.consumo_kwh).toBe(8000);
     expect(fatura.energia_injetada_kwh).toBe(3000);
-    expect(fatura.valor_compensacao).toBe(-2100);
+    // créditos de energia solar não compõem valor_compensacao (custo da fatura zerada)
+    expect(fatura.valor_compensacao).toBeNull();
     expect(fatura.demanda_contratada_kw).toBe(150);
     expect(fatura.demanda_faturada_kw).toBe(142);
     expect(fatura.demanda_medida_kw).toBe(142);
@@ -125,7 +126,7 @@ describe("leitura de NF3e", () => {
     expect(fatura.valor_juros).toBe(5.5);
   });
 
-  it("fatura zerada por créditos mantém o custo da energia antes da compensação", () => {
+  it("fatura zerada só por créditos de energia solar: custo da energia zero", () => {
     const { fatura } = lerFatura(
       gerarNF3e({
         itens: [
@@ -149,12 +150,12 @@ describe("leitura de NF3e", () => {
       }),
     );
     expect(fatura.valor_total).toBe(0);
-    expect(fatura.valor_compensacao).toBe(-1400);
-    expect(custoDaFatura(fatura)).toBe(1400);
+    expect(fatura.valor_compensacao).toBeNull();
+    expect(custoDaFatura(fatura)).toBe(0);
     expect(custoDaFatura(fatura, "faturado")).toBe(0);
   });
 
-  it("energia SCEE cobrada e crédito compensado não se anulam (custo antes dos créditos)", () => {
+  it("energia SCEE cobrada e crédito compensado não se anulam (crédito solar reduz o custo)", () => {
     const { fatura, itens } = lerFatura(
       gerarNF3e({
         scee: { vSaldAtual: 500 },
@@ -181,8 +182,13 @@ describe("leitura de NF3e", () => {
     expect(itens.slice(0, 2).map((i) => i.tipo_item)).toEqual(["consumo", "consumo"]);
     expect(fatura.consumo_kwh).toBe(1800);
     expect(fatura.valor_total).toBe(0);
-    expect(fatura.valor_compensacao).toBe(-1358.72);
-    expect(custoDaFatura(fatura)).toBe(1358.72);
+    expect(itens.slice(2).map((i) => [i.tipo_item, i.valor_total])).toEqual([
+      ["compensacao", -758.72],
+      ["compensacao", -600],
+    ]);
+    // crédito de energia solar não é somado ao custo (é analisado na aba Solar)
+    expect(fatura.valor_compensacao).toBeNull();
+    expect(custoDaFatura(fatura)).toBe(0);
     expect(custoDaFatura(fatura, "faturado")).toBe(0);
   });
 
@@ -193,7 +199,8 @@ describe("leitura de NF3e", () => {
     ];
     const comScee = lerFatura(gerarNF3e({ scee: {}, itens: itensXml }));
     expect(comScee.itens[1]!.tipo_item).toBe("compensacao");
-    expect(custoDaFatura(comScee.fatura)).toBe(500);
+    expect(comScee.fatura.valor_compensacao).toBeNull();
+    expect(custoDaFatura(comScee.fatura)).toBe(0);
     const semScee = lerFatura(gerarNF3e({ itens: itensXml }));
     expect(semScee.itens[1]!.tipo_item).toBe("consumo");
     expect(semScee.fatura.valor_compensacao).toBeNull();
@@ -251,6 +258,76 @@ describe("leitura de NF3e", () => {
     expect(fatura.valor_total).toBe(800);
     // fatura com valor a pagar: custo da energia = valor faturado
     expect(custoDaFatura(fatura)).toBe(800);
+  });
+
+  it("injeção SCEE e compensação DIC positivas: GD reduz o custo, DIC soma (Equatorial)", () => {
+    const { fatura, itens, avisos } = lerFatura(
+      gerarNF3e({
+        vNF: 0,
+        scee: { vSaldAtual: 49478.62 },
+        itens: [
+          {
+            descricao: "COMPENSAÇÃO DE DIC MENSAL",
+            qtd: 1,
+            uMed: "5",
+            vProd: 3979.5,
+            cClass: "5901000",
+          },
+          {
+            descricao: "CONSUMO FP SCEE - TUSD",
+            qtd: 191.88,
+            uMed: "2",
+            vProd: 36.56,
+            cClass: "0601300",
+          },
+          {
+            descricao: "PARCELA TE FP SCEE",
+            qtd: 191.88,
+            uMed: "2",
+            vProd: 9.82,
+            cClass: "0601301",
+          },
+          { descricao: "DEMANDA", qtd: 115.128, uMed: "1", vProd: 3824.08, cClass: "0621000" },
+          { descricao: "UFER FP", qtd: 285.36, uMed: "2", vProd: 155.42, cClass: "0611300" },
+          {
+            descricao: "INJEÇÃO SCEE FP - TUSD - UC 10019756133 - GD I",
+            qtd: 191.88,
+            uMed: "2",
+            vProd: 36.56,
+            cClass: "5603300",
+          },
+          {
+            descricao: "INJEÇÃO SCEE FP - TE - UC 10019756133 - GD I",
+            qtd: 191.88,
+            uMed: "2",
+            vProd: 9.82,
+            cClass: "5603300",
+          },
+        ],
+      }),
+    );
+    const tipo = (d: string) => itens.find((i) => i.descricao === d)!;
+    expect(tipo("COMPENSAÇÃO DE DIC MENSAL")).toMatchObject({
+      tipo_item: "credito",
+      valor_total: -3979.5,
+    });
+    expect(tipo("CONSUMO FP SCEE - TUSD").tipo_item).toBe("consumo");
+    expect(itens.filter((i) => i.tipo_item === "injecao").map((i) => i.valor_total)).toEqual([
+      -36.56, -9.82,
+    ]);
+    expect(fatura.valor_total).toBe(0);
+    expect(fatura.valor_compensacao).toBe(-3979.5);
+    // custo = cobranças (4.025,88) − créditos solares (46,38)
+    expect(custoDaFatura(fatura)).toBe(3979.5);
+    expect(custoDaFatura(fatura, "faturado")).toBe(0);
+    expect(avisos.join(" ")).toMatch(/3 item\(ns\) de crédito/);
+  });
+
+  it("avisa quando a fatura sai zerada sem créditos identificados", () => {
+    const { avisos } = lerFatura(
+      gerarNF3e({ vNF: 0, itens: [{ descricao: "CONSUMO", qtd: 100, uMed: "2", vProd: 90 }] }),
+    );
+    expect(avisos.join(" ")).toMatch(/zerada sem créditos identificados/);
   });
 
   it("identifica documento sem protocolo e documento substituto", () => {
@@ -321,7 +398,7 @@ describe("classificação de itens", () => {
     ["Consumo Ativo TUSD", "consumo", "TUSD"],
     ["CONSUMO ATIVO TE PONTA", "consumo", "TE"],
     ["Energia Ativa Injetada TE", "injecao", "TE"],
-    ["Compensação de DIC", "desconto", null],
+    ["Compensação de DIC", "credito", null],
     ["Contrib Ilum Publica", "cip", null],
     ["Adicional Bandeira Vermelha P1", "bandeira", null],
     ["Demanda Ultrapassagem TUSD", "demanda", "TUSD"],
