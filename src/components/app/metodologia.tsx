@@ -17,9 +17,9 @@ export const REGRAS_CALCULO = [
       "Somente faturas válidas: não excluídas, não canceladas, não substituídas, associadas a uma UC cadastrada e com valor total disponível. Faturas pendentes de identificação não entram nos indicadores. Documentos de ajuste compõem o período a que se referem.",
   },
   {
-    titulo: "Custo total",
+    titulo: "Custo da energia (base padrão)",
     texto:
-      "Soma do valor total (vNF) das faturas válidas do período. Subtotais e componentes (TUSD, TE, tributos etc.) nunca são somados ao valor total, para não duplicar valores.",
+      "Custo da energia ANTES da compensação de créditos de geração distribuída: valor total do documento (vNF) + créditos de energia abatidos na fatura. Assim o custo real da energia aparece mesmo quando a fatura sai com valor zero ou reduzido pelos créditos. Nos filtros é possível trocar para “Valor faturado (líquido)”, que usa apenas o vNF. Subtotais e componentes (TUSD, TE, tributos etc.) nunca são somados ao total, para não duplicar valores.",
   },
   {
     titulo: "Consumo total",
@@ -33,7 +33,7 @@ export const REGRAS_CALCULO = [
   {
     titulo: "Custo médio por kWh",
     texto:
-      "Soma do valor total ÷ soma do consumo, considerando apenas as faturas com consumo positivo — o mesmo conjunto no numerador e no denominador. Faturas sem consumo informado ficam fora deste indicador.",
+      "Soma do custo (na base escolhida) ÷ soma do consumo, considerando apenas as faturas com consumo positivo — o mesmo conjunto no numerador e no denominador. Faturas sem consumo informado ficam fora deste indicador.",
   },
   {
     titulo: "Variação percentual",

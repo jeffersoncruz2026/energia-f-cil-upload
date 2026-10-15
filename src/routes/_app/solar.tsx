@@ -330,11 +330,11 @@ function PaginaSolar() {
               detalhe="informada no gSCEE"
             />
             <CartaoIndicador
-              titulo="Custo sem os créditos (estimado)"
+              titulo="Custo da energia (antes dos créditos)"
               icone={Zap}
               valor={formatarMoeda(ind.custoSemCreditos)}
               detalhe={`faturado: ${formatarMoedaCompacta(ind.custo)}`}
-              ajuda="Custo faturado + valor abatido pelos créditos. Estimativa simples: não considera mudanças de tributos ou bandeira sem a compensação."
+              ajuda="Valor faturado + créditos de energia abatidos nas faturas: custo da energia antes da compensação."
             />
           </div>
 
@@ -396,7 +396,7 @@ function PaginaSolar() {
               />
             </CartaoGrafico>
             <CartaoGrafico
-              titulo="Custo faturado × custo estimado sem créditos"
+              titulo="Valor faturado × custo da energia antes dos créditos"
               descricao="A diferença entre as linhas é a economia com a geração distribuída."
             >
               <GraficoCustos dados={analise.serie} />
@@ -627,10 +627,10 @@ function GraficoCustos({
               <CaixaTooltip
                 titulo={rotuloMes(String(label))}
                 linhas={[
-                  { cor: COR_CUSTO, rotulo: "Custo faturado", valor: formatarMoeda(p.custo) },
+                  { cor: COR_CUSTO, rotulo: "Valor faturado", valor: formatarMoeda(p.custo) },
                   {
                     cor: COR_SOLAR,
-                    rotulo: "Sem créditos (estimado)",
+                    rotulo: "Custo da energia (antes dos créditos)",
                     valor: formatarMoeda(p.custoSemCreditos),
                   },
                   { cor: "transparent", rotulo: "Economia", valor: formatarMoeda(p.economia) },
@@ -642,7 +642,7 @@ function GraficoCustos({
         <Line
           type="monotone"
           dataKey="custoSemCreditos"
-          name="Sem créditos (estimado)"
+          name="Custo da energia (antes dos créditos)"
           stroke={COR_SOLAR}
           strokeWidth={2}
           strokeDasharray="5 4"
@@ -651,7 +651,7 @@ function GraficoCustos({
         <Line
           type="monotone"
           dataKey="custo"
-          name="Custo faturado"
+          name="Valor faturado"
           stroke={COR_CUSTO}
           strokeWidth={2}
           dot={{ r: 3 }}

@@ -11,7 +11,13 @@
 //  - As descrições nunca afirmam desperdício: indicam o que variou e o que verificar.
 
 import type { ConfigAlertas } from "../tipos";
-import { faturaValida, type FaturaAnalise, type UcAnalise } from "./calculos";
+import {
+  custoDaFatura,
+  faturaValida,
+  type BaseCusto,
+  type FaturaAnalise,
+  type UcAnalise,
+} from "./calculos";
 import { chaveMes, diferencaMeses, somarMeses, variacaoPercentual } from "./periodos";
 
 export interface AlertaGerado {
@@ -90,7 +96,7 @@ const fmtMes = (m: string) => `${m.slice(5, 7)}/${m.slice(0, 4)}`;
 const fmtBrl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtKwh = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kWh`;
 
-function agruparPorMes(faturas: FaturaAnalise[]): Map<string, Mes> {
+function agruparPorMes(faturas: FaturaAnalise[], base: BaseCusto): Map<string, Mes> {
   const meses = new Map<string, Mes>();
   for (const f of faturas) {
     const mes = chaveMes(f.periodo_referencia);
@@ -109,10 +115,12 @@ function agruparPorMes(faturas: FaturaAnalise[]): Map<string, Mes> {
       meses.set(mes, m);
     }
     m.faturas.push(f);
-    m.custo += f.valor_total ?? 0;
+    m.custo += custoDaFatura(f, base) ?? 0;
     if (f.consumo_kwh != null) m.consumo = (m.consumo ?? 0) + f.consumo_kwh;
     if (f.dias_faturados != null) m.dias = Math.max(m.dias ?? 0, f.dias_faturados);
-    if ((f.valor_total ?? 0) > (m.faturaPrincipal.valor_total ?? 0)) m.faturaPrincipal = f;
+    if ((custoDaFatura(f, base) ?? 0) > (custoDaFatura(m.faturaPrincipal, base) ?? 0)) {
+      m.faturaPrincipal = f;
+    }
     for (const c of COMPONENTES_MONITORADOS) {
       const v = f[c.campo];
       if (typeof v === "number") m.componentes[c.campo] = (m.componentes[c.campo] ?? 0) + v;
@@ -151,9 +159,10 @@ export function gerarAlertas(
   faturasEntrada: FaturaAnalise[],
   ucs: UcAnalise[],
   cfg: ConfigAlertas,
-  opcoes: { mesesAnalisados?: number } = {},
+  opcoes: { mesesAnalisados?: number; baseCusto?: BaseCusto } = {},
 ): AlertaGerado[] {
   const alertas: AlertaGerado[] = [];
+  const base = opcoes.baseCusto ?? "energia";
   const faturas = faturasEntrada.filter(faturaValida);
   const ucsPorId = new Map(ucs.map((u) => [u.id, u]));
   const porUc = new Map<string, FaturaAnalise[]>();
@@ -185,7 +194,7 @@ export function gerarAlertas(
   for (const [ucId, lista] of porUc) {
     const uc = ucsPorId.get(ucId);
     if (!uc) continue;
-    const meses = agruparPorMes(lista);
+    const meses = agruparPorMes(lista, base);
     mesesPorUc.set(ucId, meses);
     const ordenados = [...meses.keys()].sort();
 
@@ -219,7 +228,8 @@ export function gerarAlertas(
           }
         }
         const f = normais[i]!;
-        if (f.consumo_kwh != null && f.consumo_kwh <= 0 && (f.valor_total ?? 0) > 0) {
+        const custoF = custoDaFatura(f, base) ?? 0;
+        if (f.consumo_kwh != null && f.consumo_kwh <= 0 && custoF > 0) {
           add({
             mes: m.mes,
             sufixo: f.id,
@@ -234,7 +244,7 @@ export function gerarAlertas(
             descricao:
               f.consumo_kwh < 0
                 ? `Consumo negativo (${fmtKwh(f.consumo_kwh)}) na competência ${fmtMes(m.mes)}. Requer validação da leitura/compensação.`
-                : `Consumo zerado com valor faturado de ${fmtBrl(f.valor_total ?? 0)} na competência ${fmtMes(
+                : `Consumo zerado com ${base === "energia" ? "custo da energia" : "valor faturado"} de ${fmtBrl(custoF)} na competência ${fmtMes(
                     m.mes,
                   )}. Pode indicar custo de disponibilidade, compensação integral por geração própria ou leitura não realizada — validar.`,
           });
@@ -338,7 +348,7 @@ export function gerarAlertas(
           anoAnt?.custo ?? null,
           historico.map((h) => h.custo).filter((v) => v > 0),
           cfg.custo_aumento_pct,
-          "Custo",
+          base === "energia" ? "Custo da energia" : "Valor faturado",
           fmtBrl,
         );
 

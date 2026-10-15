@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { gerarChave, gerarEventoCancelamento, gerarNF3e } from "@/test/fixtures/nf3e";
 
+import { custoDaFatura } from "../analise/calculos";
+
 import { classificarItem, identificarComponente } from "./classificacao-itens";
 import { competencia, hashConteudo, lerXml } from "./leitor-fatura";
 
@@ -121,6 +123,35 @@ describe("leitura de NF3e", () => {
     expect(fatura.valor_reativo).toBe(96);
     expect(fatura.valor_multas).toBe(20);
     expect(fatura.valor_juros).toBe(5.5);
+  });
+
+  it("fatura zerada por créditos mantém o custo da energia antes da compensação", () => {
+    const { fatura } = lerFatura(
+      gerarNF3e({
+        itens: [
+          { descricao: "Consumo Ativo TUSD", qtd: 2000, uMed: "2", vProd: 800 },
+          { descricao: "Consumo Ativo TE", qtd: 2000, uMed: "2", vProd: 600 },
+          {
+            descricao: "Energia Ativa Injetada TUSD",
+            qtd: 2000,
+            uMed: "2",
+            vProd: 800,
+            devolucao: true,
+          },
+          {
+            descricao: "Energia Ativa Injetada TE",
+            qtd: 2000,
+            uMed: "2",
+            vProd: 600,
+            devolucao: true,
+          },
+        ],
+      }),
+    );
+    expect(fatura.valor_total).toBe(0);
+    expect(fatura.valor_compensacao).toBe(-1400);
+    expect(custoDaFatura(fatura)).toBe(1400);
+    expect(custoDaFatura(fatura, "faturado")).toBe(0);
   });
 
   it("identifica documento sem protocolo e documento substituto", () => {

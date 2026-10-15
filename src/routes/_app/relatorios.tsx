@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ROTULOS_TIPO_ALERTA, type TipoAlerta } from "@/lib/analise/alertas";
 import {
   agruparPor,
+  custoDaFatura,
   COMPONENTES,
   filtrarFaturas,
   serieMensal,
@@ -126,6 +127,8 @@ interface LinhaGrupo {
   area?: string | null | undefined;
   cnpj?: string | undefined;
   custo: number;
+  valorFaturado: number;
+  creditos: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -172,9 +175,17 @@ function PaginaRelatorios() {
   );
 
   const grupos = useMemo(() => {
-    const total = faturasPeriodo.reduce((s, f) => s + (f.valor_total ?? 0), 0);
+    const total = faturasPeriodo.reduce(
+      (s, f) => s + (custoDaFatura(f, filtros.baseCusto) ?? 0),
+      0,
+    );
     const montar = (chave: (u: UnidadeConsumidora) => { chave: string; rotulo: string }) =>
-      agruparPor(faturasPeriodo, ucsPorId, (u) => chave(u as UnidadeConsumidora)).map((g) => {
+      agruparPor(
+        faturasPeriodo,
+        ucsPorId,
+        (u) => chave(u as UnidadeConsumidora),
+        filtros.baseCusto,
+      ).map((g) => {
         const fats = faturasPeriodo.filter((f) => {
           const u = ucsPorId.get(f.unidade_consumidora_id!);
           return u && chave(u).chave === g.chave;
@@ -205,13 +216,14 @@ function PaginaRelatorios() {
         posicao: i + 1,
       })),
     };
-  }, [faturasPeriodo, ucsPorId]);
+  }, [faturasPeriodo, ucsPorId, filtros.baseCusto]);
 
   const mensal = useMemo(() => {
     const serie = serieMensal(
       faturasPeriodo,
       filtros.criterio,
       filtros.inicio && filtros.fim ? { inicio: filtros.inicio, fim: filtros.fim } : null,
+      filtros.baseCusto,
     );
     return serie.map((p, i) => ({
       ...p,
@@ -232,7 +244,14 @@ function PaginaRelatorios() {
       valor: (l) => l.rotulo,
       celula: (l) => <span className="font-medium">{l.rotulo}</span>,
     },
-    { id: "custo", titulo: "Custo", tipo: "moeda", valor: (l) => l.custo },
+    {
+      id: "custo",
+      titulo: filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
+      tipo: "moeda",
+      valor: (l) => l.custo,
+    },
+    { id: "faturado", titulo: "Valor faturado", tipo: "moeda", valor: (l) => l.valorFaturado },
+    { id: "creditos", titulo: "Créditos abatidos", tipo: "moeda", valor: (l) => l.creditos },
     {
       id: "participacao",
       titulo: "Participação",
@@ -360,7 +379,24 @@ function PaginaRelatorios() {
               tipo: "moeda",
               valor: (l) => l[String(c.campo)] as number | null,
             })),
-            { id: "custo", titulo: "Valor total faturado", tipo: "moeda", valor: (l) => l.custo },
+            {
+              id: "faturado",
+              titulo: "Valor faturado",
+              tipo: "moeda",
+              valor: (l) => l.valorFaturado,
+            },
+            {
+              id: "creditos",
+              titulo: "Créditos abatidos",
+              tipo: "moeda",
+              valor: (l) => l.creditos,
+            },
+            {
+              id: "custo",
+              titulo: filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
+              tipo: "moeda",
+              valor: (l) => l.custo,
+            },
           ]}
           chave={(l) => l.chave}
           nomeExportacao="relatorio-composicao-valores"
@@ -383,7 +419,24 @@ function PaginaRelatorios() {
           nomeExportacao="relatorio-comparativo-mensal"
           colunas={[
             { id: "mes", titulo: "Mês", valor: (p) => rotuloMes(p.mes) },
-            { id: "custo", titulo: "Custo", tipo: "moeda", valor: (p) => p.custo },
+            {
+              id: "custo",
+              titulo: filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
+              tipo: "moeda",
+              valor: (p) => p.custo,
+            },
+            {
+              id: "faturado",
+              titulo: "Valor faturado",
+              tipo: "moeda",
+              valor: (p) => p.valorFaturado,
+            },
+            {
+              id: "creditos",
+              titulo: "Créditos abatidos",
+              tipo: "moeda",
+              valor: (p) => p.creditos,
+            },
             { id: "varCusto", titulo: "Var. custo", tipo: "percentual", valor: (p) => p.varCusto },
             { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (p) => p.consumo },
             {

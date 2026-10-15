@@ -46,11 +46,16 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { ROTULOS_TIPO_ALERTA, type TipoAlerta } from "@/lib/analise/alertas";
-import { faturaValida } from "@/lib/analise/calculos";
+import {
+  creditosDaFatura,
+  custoDaFatura,
+  faturaValida,
+  type BaseCusto,
+} from "@/lib/analise/calculos";
 import { chaveMes, somarMeses, variacaoPercentual } from "@/lib/analise/periodos";
 import { useAuth } from "@/lib/auth";
 import { buscarTodos } from "@/lib/consulta-paginada";
-import { CHAVES, mensagemErro, useUcs } from "@/lib/consultas";
+import { CHAVES, mensagemErro, useConfiguracoes, useUcs } from "@/lib/consultas";
 import {
   formatarCnpj,
   formatarCustoKwh,
@@ -126,7 +131,10 @@ type FaturaUc = FaturaLista & {
 
 interface Mes {
   mes: string;
+  /** Custo da energia antes dos créditos (ou valor faturado, conforme a base). */
   custo: number;
+  valorFaturado: number;
+  creditos: number;
   consumo: number | null;
   custoKwh: number | null;
   dias: number | null;
@@ -156,7 +164,7 @@ function somaN(a: number | null, b: number | null | undefined): number | null {
   return (a ?? 0) + b;
 }
 
-function consolidarMeses(faturas: FaturaUc[]): Mes[] {
+function consolidarMeses(faturas: FaturaUc[], base: BaseCusto): Mes[] {
   const mapa = new Map<string, Mes>();
   for (const f of faturas.filter((x) => faturaValida(x))) {
     const mes = chaveMes(f.periodo_referencia);
@@ -164,6 +172,8 @@ function consolidarMeses(faturas: FaturaUc[]): Mes[] {
     const m: Mes = mapa.get(mes) ?? {
       mes,
       custo: 0,
+      valorFaturado: 0,
+      creditos: 0,
       consumo: null,
       custoKwh: null,
       dias: null,
@@ -188,7 +198,9 @@ function consolidarMeses(faturas: FaturaUc[]): Mes[] {
       faturas: 0,
     };
     m.faturas++;
-    m.custo += f.valor_total ?? 0;
+    m.custo += custoDaFatura(f, base) ?? 0;
+    m.valorFaturado += f.valor_total ?? 0;
+    m.creditos += creditosDaFatura(f);
     m.consumo = somaN(m.consumo, f.consumo_kwh);
     if (f.dias_faturados != null) m.dias = Math.max(m.dias ?? 0, f.dias_faturados);
     m.tusd = somaN(m.tusd, f.valor_tusd);
@@ -258,7 +270,12 @@ function DetalheUc() {
 
   const uc = ucs?.find((u) => u.id === id);
   const todasFaturas = useMemo(() => faturasQ.data ?? [], [faturasQ.data]);
-  const mesesTodos = useMemo(() => consolidarMeses(todasFaturas), [todasFaturas]);
+  const { data: cfg } = useConfiguracoes();
+  const baseCusto: BaseCusto = cfg?.baseCusto ?? "energia";
+  const mesesTodos = useMemo(
+    () => consolidarMeses(todasFaturas, baseCusto),
+    [todasFaturas, baseCusto],
+  );
   const meses = useMemo(
     () => mesesTodos.filter((m) => (!inicio || m.mes >= inicio) && (!fim || m.mes <= fim)),
     [mesesTodos, inicio, fim],
@@ -290,7 +307,14 @@ function DetalheUc() {
 
   const colunasMes: Coluna<Mes>[] = [
     { id: "mes", titulo: "Competência", valor: (m) => rotuloMes(m.mes) },
-    { id: "custo", titulo: "Custo", tipo: "moeda", valor: (m) => m.custo },
+    {
+      id: "custo",
+      titulo: baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
+      tipo: "moeda",
+      valor: (m) => m.custo,
+    },
+    { id: "faturado", titulo: "Valor faturado", tipo: "moeda", valor: (m) => m.valorFaturado },
+    { id: "creditos", titulo: "Créditos abatidos", tipo: "moeda", valor: (m) => m.creditos },
     { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (m) => m.consumo },
     { id: "custoKwh", titulo: "R$/kWh", tipo: "decimal4", valor: (m) => m.custoKwh },
     { id: "dias", titulo: "Dias", tipo: "numero", valor: (m) => m.dias },
@@ -332,7 +356,14 @@ function DetalheUc() {
     { id: "multas", titulo: "Multas e juros", tipo: "moeda", valor: (m) => m.multasJuros },
     { id: "icms", titulo: "ICMS", tipo: "moeda", valor: (m) => m.icms },
     { id: "piscofins", titulo: "PIS/COFINS", tipo: "moeda", valor: (m) => m.pisCofins },
-    { id: "total", titulo: "Total", tipo: "moeda", valor: (m) => m.custo },
+    { id: "creditosComp", titulo: "Créditos abatidos", tipo: "moeda", valor: (m) => -m.creditos },
+    { id: "total", titulo: "Valor faturado", tipo: "moeda", valor: (m) => m.valorFaturado },
+    {
+      id: "custoEnergia",
+      titulo: "Custo da energia",
+      tipo: "moeda",
+      valor: (m) => m.valorFaturado + m.creditos,
+    },
   ];
 
   const exportarTudo = () =>
@@ -429,10 +460,17 @@ function DetalheUc() {
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <CartaoIndicador
-              titulo="Custo no período"
+              titulo={
+                baseCusto === "energia"
+                  ? "Custo da energia no período"
+                  : "Valor faturado no período"
+              }
               icone={CircleDollarSign}
               valor={formatarMoeda(custoTotal)}
-              detalhe={`${meses.length} mês(es)`}
+              detalhe={`faturado ${formatarMoedaCompacta(
+                meses.reduce((t, m) => t + m.valorFaturado, 0),
+              )} · créditos ${formatarMoedaCompacta(meses.reduce((t, m) => t + m.creditos, 0))}`}
+              ajuda="Custo da energia antes da compensação de créditos = valor faturado + créditos abatidos."
             />
             <CartaoIndicador
               titulo="Consumo no período"
@@ -507,7 +545,12 @@ function DetalheUc() {
                 formatarEixo={(v) => formatarNumero(v)}
               />
             </CartaoGrafico>
-            <CartaoGrafico titulo="Custo mensal (R$)">
+            <CartaoGrafico
+              titulo="Custo mensal (R$)"
+              descricao={
+                baseCusto === "energia" ? "Custo da energia antes dos créditos." : "Valor faturado."
+              }
+            >
               <GraficoMensal
                 dados={meses}
                 campo="custo"

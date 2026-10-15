@@ -6,6 +6,7 @@ import {
   FileStack,
   Gauge,
   Inbox,
+  PiggyBank,
   PlugZap,
   Receipt,
   TrendingUp,
@@ -43,6 +44,9 @@ import {
 import {
   agruparPor,
   calcularIndicadores,
+  creditosDaFatura,
+  custoDaFatura,
+  ROTULOS_BASE_CUSTO,
   filtrarFaturas,
   mesDaFatura,
   serieMensal,
@@ -93,23 +97,43 @@ function Dashboard() {
   const analise = useMemo(() => {
     const ind = calcularIndicadores(faturas, ucs, filtros);
     const doPeriodo = filtrarFaturas(faturas, ucsPorId, filtros);
-    const serie = serieMensal(doPeriodo, filtros.criterio, ind.intervalo);
-    const porFazenda = agruparPor(doPeriodo, ucsPorId, (u) => ({
-      chave: u.fazenda,
-      rotulo: u.fazenda,
-    }));
-    const porFilial = agruparPor(doPeriodo, ucsPorId, (u) => ({
-      chave: u.filial ?? "—",
-      rotulo: u.filial ?? "Sem filial",
-    }));
-    const porArea = agruparPor(doPeriodo, ucsPorId, (u) => ({
-      chave: u.area ?? "",
-      rotulo: u.area ?? "Sem área definida",
-    }));
-    const porUc = agruparPor(doPeriodo, ucsPorId, (u) => ({
-      chave: u.id,
-      rotulo: `UC ${u.numero_uc}`,
-    }));
+    const serie = serieMensal(doPeriodo, filtros.criterio, ind.intervalo, filtros.baseCusto);
+    const porFazenda = agruparPor(
+      doPeriodo,
+      ucsPorId,
+      (u) => ({
+        chave: u.fazenda,
+        rotulo: u.fazenda,
+      }),
+      filtros.baseCusto,
+    );
+    const porFilial = agruparPor(
+      doPeriodo,
+      ucsPorId,
+      (u) => ({
+        chave: u.filial ?? "—",
+        rotulo: u.filial ?? "Sem filial",
+      }),
+      filtros.baseCusto,
+    );
+    const porArea = agruparPor(
+      doPeriodo,
+      ucsPorId,
+      (u) => ({
+        chave: u.area ?? "",
+        rotulo: u.area ?? "Sem área definida",
+      }),
+      filtros.baseCusto,
+    );
+    const porUc = agruparPor(
+      doPeriodo,
+      ucsPorId,
+      (u) => ({
+        chave: u.id,
+        rotulo: `UC ${u.numero_uc}`,
+      }),
+      filtros.baseCusto,
+    );
     const comDivergencia = doPeriodo.filter(
       (f) => f.divergencias?.length > 0 || f.status_documento === "sem_protocolo",
     ).length;
@@ -185,14 +209,36 @@ function Dashboard() {
         <>
           <BarraFiltros filtros={filtros} aoMudar={setFiltros} ucs={ucs} />
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
             <CartaoIndicador
-              titulo="Custo total faturado"
+              titulo={filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado total"}
               icone={CircleDollarSign}
               valor={formatarMoeda(ind.custoTotal)}
               variacao={ind.variacaoCusto}
               detalhe={anteriorTexto}
-              ajuda="Soma do valor total das faturas válidas do período. Valor faturado, não necessariamente pago."
+              ajuda={
+                filtros.baseCusto === "energia"
+                  ? "Custo da energia antes da compensação de créditos de geração distribuída: valor faturado + créditos abatidos. Vale também para faturas que saíram com valor zero."
+                  : "Soma do valor líquido faturado (vNF) das faturas válidas do período. Valor faturado, não necessariamente pago."
+              }
+            />
+            <CartaoIndicador
+              titulo="Valor faturado (líquido)"
+              icone={Receipt}
+              valor={formatarMoeda(ind.valorFaturado)}
+              detalhe="efetivamente cobrado (vNF)"
+              ajuda="Valor total dos documentos, já descontados os créditos de energia. Não significa pagamento confirmado."
+            />
+            <CartaoIndicador
+              titulo="Créditos de energia abatidos"
+              icone={PiggyBank}
+              valor={formatarMoeda(ind.creditos)}
+              detalhe={
+                ind.custoTotal > 0 && filtros.baseCusto === "energia"
+                  ? `${formatarNumero((ind.creditos / ind.custoTotal) * 100, 1)}% do custo da energia`
+                  : "compensação de geração distribuída"
+              }
+              ajuda="Valores dos itens de energia injetada/compensada abatidos nas faturas."
             />
             <CartaoIndicador
               titulo="Consumo total"
@@ -207,7 +253,7 @@ function Dashboard() {
               icone={Gauge}
               valor={ind.custoKwh != null ? `R$ ${formatarNumero(ind.custoKwh, 4)}` : "—"}
               detalhe={`por kWh · ${ind.faturasComConsumo} de ${ind.quantidadeFaturas} faturas com consumo`}
-              ajuda="Valor total ÷ consumo, somente das faturas com consumo positivo (mesmo conjunto no numerador e denominador)."
+              ajuda={`${filtros.baseCusto === "energia" ? "Custo da energia (antes dos créditos)" : "Valor faturado"} ÷ consumo, somente das faturas com consumo positivo (mesmo conjunto no numerador e denominador).`}
             />
             <CartaoIndicador
               titulo="Custo médio por UC"
@@ -272,7 +318,7 @@ function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             <CartaoGrafico
               titulo="Evolução mensal do custo"
-              descricao="Clique em um mês para ver as faturas."
+              descricao={`${ROTULOS_BASE_CUSTO[filtros.baseCusto]}. Clique em um mês para ver as faturas.`}
             >
               <GraficoMensal
                 dados={analise.serie}
@@ -427,7 +473,24 @@ function Dashboard() {
               aoClicarLinha={(p) => setMesDetalhe(p.mes)}
               colunas={[
                 { id: "mes", titulo: "Mês", valor: (p) => rotuloMes(p.mes) },
-                { id: "custo", titulo: "Custo", tipo: "moeda", valor: (p) => p.custo },
+                {
+                  id: "custo",
+                  titulo: filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
+                  tipo: "moeda",
+                  valor: (p) => p.custo,
+                },
+                {
+                  id: "faturado",
+                  titulo: "Valor faturado",
+                  tipo: "moeda",
+                  valor: (p) => p.valorFaturado,
+                },
+                {
+                  id: "creditos",
+                  titulo: "Créditos abatidos",
+                  tipo: "moeda",
+                  valor: (p) => p.creditos,
+                },
                 { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (p) => p.consumo },
                 { id: "kwh", titulo: "R$/kWh", tipo: "decimal4", valor: (p) => p.custoKwh },
                 { id: "faturas", titulo: "Faturas", tipo: "numero", valor: (p) => p.faturas },
@@ -479,16 +542,23 @@ function DetalheMes({
       valor: (f) => ucsPorId.get(f.unidade_consumidora_id ?? "")?.filial,
     },
     { id: "numero", titulo: "Nº", valor: (f) => f.numero_documento },
-    { id: "valor", titulo: "Valor", tipo: "moeda", valor: (f) => f.valor_total },
+    { id: "custo", titulo: "Custo da energia", tipo: "moeda", valor: (f) => custoDaFatura(f) },
+    { id: "valor", titulo: "Valor faturado", tipo: "moeda", valor: (f) => f.valor_total },
+    {
+      id: "creditos",
+      titulo: "Créditos",
+      tipo: "moeda",
+      valor: (f) => creditosDaFatura(f) || null,
+    },
     { id: "consumo", titulo: "Consumo", tipo: "kwh", valor: (f) => f.consumo_kwh },
     {
       id: "kwh",
       titulo: "R$/kWh",
       tipo: "decimal4",
-      valor: (f) =>
-        f.consumo_kwh && f.consumo_kwh > 0 && f.valor_total != null
-          ? f.valor_total / f.consumo_kwh
-          : null,
+      valor: (f) => {
+        const c = custoDaFatura(f);
+        return f.consumo_kwh && f.consumo_kwh > 0 && c != null ? c / f.consumo_kwh : null;
+      },
     },
   ];
   return (
@@ -505,7 +575,7 @@ function DetalheMes({
           colunas={colunas}
           chave={(f) => f.id}
           nomeExportacao={`faturas-${mes}`}
-          ordenacaoInicial={{ id: "valor", direcao: "desc" }}
+          ordenacaoInicial={{ id: "custo", direcao: "desc" }}
           aoClicarLinha={(f) => navigate({ to: "/faturas/$id", params: { id: f.id } })}
         />
       </DialogContent>

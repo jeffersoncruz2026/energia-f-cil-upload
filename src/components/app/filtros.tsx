@@ -102,7 +102,7 @@ export function BarraFiltros({
   filtros: Filtros;
   aoMudar: (f: Filtros) => void;
   ucs: UnidadeConsumidora[];
-  ocultar?: ("ucs" | "situacao" | "criterio")[];
+  ocultar?: ("ucs" | "situacao" | "criterio" | "baseCusto")[];
 }) {
   const opcoes = useMemo(() => {
     const unicos = (l: (string | null)[]) =>
@@ -172,6 +172,23 @@ export function BarraFiltros({
             <SelectContent>
               <SelectItem value="competencia">Competência</SelectItem>
               <SelectItem value="emissao">Data de emissão</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {!ocultar.includes("baseCusto") && (
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Base de custo</Label>
+          <Select
+            value={filtros.baseCusto}
+            onValueChange={(v) => set("baseCusto", v as Filtros["baseCusto"])}
+          >
+            <SelectTrigger className="h-9 w-[230px]" aria-label="Base de custo">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="energia">Custo da energia (antes dos créditos)</SelectItem>
+              <SelectItem value="faturado">Valor faturado (líquido)</SelectItem>
             </SelectContent>
           </Select>
         </div>

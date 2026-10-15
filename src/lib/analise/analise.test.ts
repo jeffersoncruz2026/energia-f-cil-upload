@@ -5,6 +5,8 @@ import { gerarAlertas } from "./alertas";
 import {
   calcularIndicadores,
   calcularTotais,
+  creditosDaFatura,
+  custoDaFatura,
   FILTROS_VAZIOS,
   serieMensal,
   type FaturaAnalise,
@@ -174,6 +176,78 @@ describe("cálculos", () => {
   });
 });
 
+describe("custo da energia antes dos créditos", () => {
+  it("soma os créditos abatidos ao valor faturado, inclusive quando a fatura sai zerada", () => {
+    expect(custoDaFatura({ valor_total: 0, valor_compensacao: -812.5 })).toBe(812.5);
+    expect(custoDaFatura({ valor_total: 0, valor_compensacao: -812.5 }, "faturado")).toBe(0);
+    expect(custoDaFatura({ valor_total: 300, valor_compensacao: null })).toBe(300);
+    expect(custoDaFatura({ valor_total: null, valor_compensacao: -10 })).toBeNull();
+    expect(creditosDaFatura({ valor_compensacao: 50 })).toBe(0);
+  });
+
+  it("indicadores, série e agrupamentos usam a base escolhida", () => {
+    const faturas = [
+      fatura({ valor_total: 0, valor_compensacao: -1000, consumo_kwh: 1250 }),
+      fatura({
+        valor_total: 400,
+        valor_compensacao: -600,
+        consumo_kwh: 1000,
+        unidade_consumidora_id: "uc2",
+      }),
+    ];
+    const energia = calcularIndicadores(faturas, ucs, {
+      ...FILTROS_VAZIOS,
+      inicio: "2026-01",
+      fim: "2026-01",
+    });
+    expect(energia.custoTotal).toBe(2000);
+    expect(energia.valorFaturado).toBe(400);
+    expect(energia.creditos).toBe(1600);
+    expect(energia.custoKwh).toBeCloseTo(2000 / 2250);
+    const faturado = calcularIndicadores(faturas, ucs, {
+      ...FILTROS_VAZIOS,
+      inicio: "2026-01",
+      fim: "2026-01",
+      baseCusto: "faturado",
+    });
+    expect(faturado.custoTotal).toBe(400);
+    expect(serieMensal(faturas, "competencia")[0]).toMatchObject({
+      custo: 2000,
+      valorFaturado: 400,
+      creditos: 1600,
+    });
+  });
+
+  it("alertas comparam o custo da energia, não o valor reduzido pelos créditos", () => {
+    const faturas = [
+      fatura({
+        periodo_referencia: "2025-12-01",
+        valor_total: 1000,
+        valor_compensacao: null,
+        consumo_kwh: 1000,
+      }),
+      // custo da energia igual, mas créditos zeraram a fatura: não é queda/aumento de custo
+      fatura({
+        periodo_referencia: "2026-01-01",
+        valor_total: 0,
+        valor_compensacao: -1000,
+        consumo_kwh: 1000,
+      }),
+      fatura({
+        periodo_referencia: "2026-02-01",
+        valor_total: 0,
+        valor_compensacao: -1500,
+        consumo_kwh: 1000,
+      }),
+    ];
+    const alertas = gerarAlertas(faturas, ucs, CONFIG_ALERTAS_PADRAO);
+    const custo = alertas.filter((a) => a.tipo_alerta === "aumento_custo");
+    expect(custo.map((a) => a.periodo)).toEqual(["2026-02-01"]);
+    expect(custo[0]?.descricao).toMatch(/Custo da energia/);
+    expect(alertas.some((a) => a.tipo_alerta === "consumo_zerado_negativo")).toBe(false);
+  });
+});
+
 describe("alertas", () => {
   const cfg = CONFIG_ALERTAS_PADRAO;
 
@@ -302,7 +376,7 @@ describe("alertas", () => {
     const alertas = gerarAlertas(faturas, ucs, cfg);
     expect(alertas.some((a) => a.tipo_alerta === "variacao_componente")).toBe(false);
     const custo = alertas.find((a) => a.tipo_alerta === "aumento_custo");
-    expect(custo?.indicador).toBe("Custo médio diário");
+    expect(custo?.indicador).toBe("Custo da energia médio diário");
     expect(custo?.valor_atual).toBeCloseTo(50);
   });
 
