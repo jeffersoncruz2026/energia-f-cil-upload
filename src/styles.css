@@ -95,8 +95,8 @@
   --input: oklch(0.87 0.016 170);
   --ring: #d4690f;
   --chart-1: #0a7d63; /* validado (dataviz): custo — verde da marca */
-  --chart-2: #2a78d6; /* validado (dataviz): consumo */
-  --chart-3: #d4690f; /* validado (dataviz): energia solar — laranja da marca */
+  --chart-2: #d4690f; /* validado (dataviz): consumo — laranja da marca */
+  --chart-3: #2a78d6; /* validado (dataviz): energia solar */
   --chart-4: oklch(0.6 0.12 300);
   --chart-5: oklch(0.55 0.04 180);
   --sidebar: oklch(0.31 0.045 178);
@@ -134,8 +134,8 @@
   --input: oklch(1 0 0 / 15%);
   --ring: #d8701a;
   --chart-1: #22a382;
-  --chart-2: #5b8fe0;
-  --chart-3: #d8701a;
+  --chart-2: #d8701a;
+  --chart-3: #5b8fe0;
   --chart-4: oklch(0.72 0.12 300);
   --chart-5: oklch(0.7 0.04 180);
   --sidebar: oklch(0.2 0.03 178);

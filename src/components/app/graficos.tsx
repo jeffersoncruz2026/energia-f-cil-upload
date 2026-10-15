@@ -1,5 +1,6 @@
 // Gráficos (Recharts) com marcas finas, eixo único, grade discreta e tooltip.
-// Cores: --chart-1 (custo) e --chart-2 (consumo), paleta validada para daltonismo.
+// Cores: --chart-1 (custo, verde), --chart-2 (consumo, laranja da marca) e --chart-3 (solar),
+// paleta validada para daltonismo.
 
 import type { ReactNode } from "react";
 import {
