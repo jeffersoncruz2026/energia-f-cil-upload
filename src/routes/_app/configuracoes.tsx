@@ -22,6 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { ROTULOS_PAPEL, useAuth } from "@/lib/auth";
 import { CHAVES, mensagemErro, useConfiguracoes } from "@/lib/consultas";
 import type { ConfigAlertas, ConfigCadastroUc, CriterioConsolidacao, Papel } from "@/lib/tipos";
@@ -82,7 +83,10 @@ function PaginaConfiguracoes() {
 }
 
 async function salvarConfig(chave: string, valor: unknown) {
-  const { error } = await supabase.from("configuracoes").update({ valor }).eq("chave", chave);
+  const { error } = await supabase
+    .from("configuracoes")
+    .update({ valor: valor as Json })
+    .eq("chave", chave);
   if (error) throw error;
 }
 
