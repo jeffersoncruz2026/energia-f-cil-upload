@@ -317,6 +317,35 @@ function somarEnergiaSemDuplicar(itens: ItemExtraido[]): number | null {
   return tusd + te + outros;
 }
 
+/**
+ * Algumas distribuidoras (ex.: Equatorial) lançam créditos ("CRÉDITO DE CONSUMO",
+ * "DEV. ICMS COB. A MAIOR (-)") com vProd positivo e sem indDevolucao, embora o
+ * vNF os desconte. Quando inverter o sinal desses itens faz a soma dos itens
+ * fechar com o vNF, eles são tratados como abatimentos (valor negativo).
+ */
+function ajustarSinalDosCreditos(itens: ItemExtraido[], vNF: number | null, avisos: string[]) {
+  if (vNF == null) return;
+  const candidatos = itens.filter(
+    (i) =>
+      (i.valor_total ?? 0) > 0 &&
+      i.dados_adicionais_json["indDevolucao"] !== "1" &&
+      (i.tipo_item === "credito" || /^59/.test(i.codigo_classificacao ?? "")),
+  );
+  if (!candidatos.length) return;
+  const soma = somar(itens.map((i) => i.valor_total)) ?? 0;
+  const somaCandidatos = somar(candidatos.map((i) => i.valor_total)) ?? 0;
+  if (Math.abs(soma - vNF) <= 0.05 || Math.abs(soma - 2 * somaCandidatos - vNF) > 0.05) return;
+  for (const i of candidatos) {
+    i.valor_total = -(i.valor_total ?? 0);
+    if (i.quantidade != null && i.quantidade > 0) i.quantidade = -i.quantidade;
+    if (i.tipo_item !== "desconto") i.tipo_item = "credito";
+    i.dados_adicionais_json["sinalInvertido"] = true;
+  }
+  avisos.push(
+    `${candidatos.length} item(ns) de crédito informado(s) com valor positivo foram tratados como abatimento (soma dos itens confere com o vNF).`,
+  );
+}
+
 function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
   const avisos: string[] = [];
   const ide = filho(inf, "ide");
@@ -471,6 +500,7 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
   if (!itens.length) avisos.push("Nenhum item faturado encontrado (grupo NFdet/det).");
 
   const itensAtuais = itens.filter((i) => !i.dados_adicionais_json["itemDocumentoAnterior"]);
+  ajustarSinalDosCreditos(itensAtuais, num(txt(total, "vNF")), avisos);
   const porTipo = (t: TipoItem) => itensAtuais.filter((i) => i.tipo_item === t);
   const somaValor = (l: ItemExtraido[]) => arred(somar(l.map((i) => i.valor_total)));
 
@@ -579,9 +609,12 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
     valor_juros: somaValor(porTipo("juros")),
     valor_encargos: somaValor(porTipo("encargo")),
     valor_descontos: descontos == null ? null : Math.abs(descontos),
-    // Créditos abatidos = apenas os lançamentos negativos de injeção/compensação.
+    // Créditos abatidos = lançamentos negativos de injeção/compensação (GD) e
+    // créditos de consumo/devoluções lançados pela distribuidora.
     valor_compensacao: somaValor(
-      [...porTipo("injecao"), ...porTipo("compensacao")].filter((i) => (i.valor_total ?? 0) < 0),
+      [...porTipo("injecao"), ...porTipo("compensacao"), ...porTipo("credito")].filter(
+        (i) => (i.valor_total ?? 0) < 0,
+      ),
     ),
     valor_outros: somaValor([...porTipo("outros"), ...porTipo("tributo")]),
   };

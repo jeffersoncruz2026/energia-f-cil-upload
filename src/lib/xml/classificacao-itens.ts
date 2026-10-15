@@ -9,6 +9,7 @@ export type TipoItem =
   | "reativo"
   | "injecao"
   | "compensacao"
+  | "credito"
   | "bandeira"
   | "cip"
   | "multa"
@@ -26,6 +27,7 @@ export const ROTULOS_TIPO_ITEM: Record<TipoItem, string> = {
   reativo: "Energia/demanda reativa",
   injecao: "Energia injetada",
   compensacao: "Energia compensada / créditos",
+  credito: "Créditos de consumo / devoluções",
   bandeira: "Bandeira tarifária",
   cip: "CIP/COSIP",
   multa: "Multa",
@@ -50,6 +52,9 @@ export function classificarItem(descricao: string | null | undefined): TipoItem 
   ) {
     return "compensacao";
   }
+  // Créditos lançados pela distribuidora (ex.: "CRÉDITO DE CONSUMO - 01/2026",
+  // "DEV. ICMS COB. A MAIOR (-) - CRÉDITO DE CONSUMO"), muitas vezes com vProd positivo.
+  if (/^CREDITO\b|\bCREDITO (DE|DO|REF|REFERENTE) |\(-\)/.test(d)) return "credito";
   if (/\bCIP\b|COSIP|ILUM(INACAO)?\.? PUB|CONTRIB.*ILUM|ILUMINACAO PUBLICA/.test(d)) return "cip";
   if (/MULTA/.test(d)) return "multa";
   if (/JUROS|\bMORA\b/.test(d)) return "juros";

@@ -227,10 +227,10 @@ function Dashboard() {
               icone={Receipt}
               valor={formatarMoeda(ind.valorFaturado)}
               detalhe="efetivamente cobrado (vNF)"
-              ajuda="Valor total dos documentos, já descontados os créditos de energia. Não significa pagamento confirmado."
+              ajuda="Valor total dos documentos, já descontados os créditos (GD e créditos de consumo). Não significa pagamento confirmado."
             />
             <CartaoIndicador
-              titulo="Créditos de energia abatidos"
+              titulo="Créditos abatidos"
               icone={PiggyBank}
               valor={formatarMoeda(ind.creditos)}
               detalhe={
