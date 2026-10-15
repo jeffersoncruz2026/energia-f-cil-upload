@@ -651,6 +651,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      area_canonica: { Args: { _area: string }; Returns: string }
       associar_fatura_uc: {
         Args: { p_fatura_id: string; p_uc_id: string }
         Returns: Json
@@ -662,6 +663,7 @@ export type Database = {
         }
         Returns: Json
       }
+      chave_texto: { Args: { _t: string }; Returns: string }
       cnpj_valido: { Args: { _cnpj: string }; Returns: boolean }
       definir_papel_usuario: {
         Args: {
@@ -705,6 +707,10 @@ export type Database = {
       reidentificar_pendentes: { Args: never; Returns: Json }
       restaurar_fatura: { Args: { p_fatura_id: string }; Returns: undefined }
       salvar_alertas: { Args: { p_alertas: Json }; Returns: Json }
+      situacao_texto: {
+        Args: { _t: string }
+        Returns: Database["public"]["Enums"]["situacao_uc"]
+      }
       tem_permissao: { Args: { _permissao: string }; Returns: boolean }
     }
     Enums: {
