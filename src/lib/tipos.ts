@@ -16,6 +16,7 @@ export interface UnidadeConsumidora {
   cnpj: string;
   endereco: string | null;
   filial: string | null;
+  area: string | null;
   situacao: SituacaoUc;
   observacoes: string | null;
   created_at: string;
@@ -180,11 +181,18 @@ export const CONFIG_ALERTAS_PADRAO: ConfigAlertas = {
 export interface ConfigCadastroUc {
   endereco_obrigatorio: boolean;
   filial_obrigatoria: boolean;
+  area_obrigatoria: boolean;
+  /** Áreas sugeridas no cadastro (ex.: Agrícola, Pecuária, Seringal…) */
+  areas: string[];
 }
+
+export const AREAS_PADRAO = ["Agrícola", "Pecuária", "Seringal", "Administrativo", "Oficina"];
 
 export const CONFIG_CADASTRO_PADRAO: ConfigCadastroUc = {
   endereco_obrigatorio: false,
   filial_obrigatoria: true,
+  area_obrigatoria: false,
+  areas: AREAS_PADRAO,
 };
 
 export type CriterioConsolidacao = "competencia" | "emissao";

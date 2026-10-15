@@ -8,6 +8,7 @@ import {
   History,
   Inbox,
   Layers,
+  Tractor,
   ListOrdered,
   PieChart,
   ShieldAlert,
@@ -49,6 +50,7 @@ type TipoRelatorio =
   | "faturas"
   | "fazenda"
   | "filial"
+  | "area"
   | "uc"
   | "mensal"
   | "composicao"
@@ -75,6 +77,12 @@ const RELATORIOS: { id: TipoRelatorio; titulo: string; descricao: string; icone:
     titulo: "Custo por filial",
     descricao: "Custo e participação por filial",
     icone: PieChart,
+  },
+  {
+    id: "area",
+    titulo: "Custo por área",
+    descricao: "Agrícola, pecuária, seringal… por fazenda",
+    icone: Tractor,
   },
   { id: "uc", titulo: "Consumo por UC", descricao: "Consumo e custo de cada UC", icone: Layers },
   {
@@ -115,6 +123,7 @@ interface LinhaGrupo {
   rotulo: string;
   fazenda?: string | undefined;
   filial?: string | null | undefined;
+  area?: string | null | undefined;
   cnpj?: string | undefined;
   custo: number;
   consumo: number;
@@ -166,15 +175,17 @@ function PaginaRelatorios() {
     const total = faturasPeriodo.reduce((s, f) => s + (f.valor_total ?? 0), 0);
     const montar = (chave: (u: UnidadeConsumidora) => { chave: string; rotulo: string }) =>
       agruparPor(faturasPeriodo, ucsPorId, (u) => chave(u as UnidadeConsumidora)).map((g) => {
-        const uc = ucsPorId.get(g.chave);
         const fats = faturasPeriodo.filter((f) => {
           const u = ucsPorId.get(f.unidade_consumidora_id!);
           return u && chave(u).chave === g.chave;
         });
+        // UC representativa do grupo (para fazenda/área/filial nas colunas)
+        const uc = ucsPorId.get(g.chave) ?? ucsPorId.get(fats[0]?.unidade_consumidora_id ?? "");
         const linha: LinhaGrupo = {
           ...g,
           fazenda: uc?.fazenda,
           filial: uc?.filial,
+          area: uc?.area,
           cnpj: uc?.cnpj,
           participacao: total ? (g.custo / total) * 100 : null,
         };
@@ -185,6 +196,10 @@ function PaginaRelatorios() {
     return {
       fazenda: montar((u) => ({ chave: u.fazenda, rotulo: u.fazenda })),
       filial: montar((u) => ({ chave: u.filial ?? "—", rotulo: u.filial ?? "Sem filial" })),
+      area: montar((u) => ({
+        chave: `${u.fazenda}|${u.area ?? ""}`,
+        rotulo: u.area ?? "Sem área definida",
+      })),
       uc: montar((u) => ({ chave: u.id, rotulo: u.numero_uc })).map((l, i) => ({
         ...l,
         posicao: i + 1,
@@ -238,6 +253,7 @@ function PaginaRelatorios() {
     },
     { id: "fazenda", titulo: "Fazenda", valor: (l) => l.fazenda },
     { id: "filial", titulo: "Filial", valor: (l) => l.filial },
+    { id: "area", titulo: "Área", valor: (l) => l.area },
     {
       id: "cnpj",
       titulo: "CNPJ",
@@ -279,6 +295,20 @@ function PaginaRelatorios() {
           colunas={colunasGrupo("Filial")}
           chave={(l) => l.chave}
           nomeExportacao="relatorio-custo-filial"
+        />
+      );
+      break;
+    case "area":
+      conteudo = (
+        <TabelaDados
+          key={tipo}
+          dados={grupos.area}
+          colunas={colunasGrupo("Área", [
+            { id: "fazenda", titulo: "Fazenda", valor: (l) => l.fazenda },
+          ])}
+          chave={(l) => l.chave}
+          nomeExportacao="relatorio-custo-area"
+          ordenacaoInicial={{ id: "fazenda", direcao: "asc" }}
         />
       );
       break;

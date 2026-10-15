@@ -19,6 +19,7 @@ const existente: UnidadeConsumidora = {
   cnpj: "11222333000181",
   endereco: null,
   filial: "Matriz",
+  area: null,
   situacao: "ativa",
   observacoes: null,
   created_at: "",
@@ -139,5 +140,31 @@ describe("planilha de UCs", () => {
       [{ v: 1234.5, d: "2026-01-31" }],
     );
     expect(csv).toBe('"Valor";"Data"\r\n"1234,5";"31/01/2026"');
+  });
+
+  it("padroniza a área, valida a situação e mantém valores de colunas ausentes", () => {
+    const { registros } = interpretarLinhas([
+      ["Numero da UC", "Fazenda", "CNPJ", "Filial", "Situação", "Área"],
+      ["555", "Faz C", "11444777000161", "F1", "Inativo", "  pecuaria "],
+      ["556", "Faz C", "11444777000161", "F1", "talvez", "Agrícola"],
+      ["123", "Fazenda Velha", "11222333000181", "Matriz", "", "seringal"],
+    ]);
+    const previa = gerarPrevia(registros, [existente], "incluir_atualizar", CONFIG_CADASTRO_PADRAO);
+    expect(previa.linhas[0]).toMatchObject({ acao: "incluir", registro: { area: "Pecuária" } });
+    expect(previa.linhas[1]?.motivo).toBe("Situação inválida (talvez). Use Ativa ou Inativa.");
+    expect(previa.linhas[2]?.alteracoes).toEqual([{ campo: "area", de: null, para: "Seringal" }]);
+
+    const semColunas = interpretarLinhas([
+      ["Numero da UC", "Fazenda", "CNPJ", "Filial"],
+      ["123", "Fazenda Velha", "11222333000181", "Matriz"],
+    ]);
+    expect(semColunas.registros[0]).not.toHaveProperty("area");
+    const p2 = gerarPrevia(
+      semColunas.registros,
+      [{ ...existente, area: "Oficina", situacao: "inativa" }],
+      "atualizar",
+      CONFIG_CADASTRO_PADRAO,
+    );
+    expect(p2.linhas[0]?.acao).toBe("sem_alteracao");
   });
 });

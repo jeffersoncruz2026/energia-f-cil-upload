@@ -24,9 +24,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidarDados, mensagemErro, useConfiguracoes } from "@/lib/consultas";
+import { canonizarArea, chaveTexto, listaAreas } from "@/lib/areas";
 import { cnpjValido, normalizarCnpj, normalizarUc } from "@/lib/documentos";
 import { formatarCnpj } from "@/lib/formatacao";
-import type { SituacaoUc, UnidadeConsumidora } from "@/lib/tipos";
+import { AREAS_PADRAO, type SituacaoUc, type UnidadeConsumidora } from "@/lib/tipos";
 
 interface Valores {
   numero_uc: string;
@@ -34,6 +35,7 @@ interface Valores {
   cnpj: string;
   endereco: string;
   filial: string;
+  area: string;
   situacao: SituacaoUc;
   observacoes: string;
 }
@@ -44,6 +46,7 @@ const VAZIO: Valores = {
   cnpj: "",
   endereco: "",
   filial: "",
+  area: "",
   situacao: "ativa",
   observacoes: "",
 };
@@ -80,6 +83,7 @@ export function FormularioUc({
             cnpj: formatarCnpj(uc.cnpj),
             endereco: uc.endereco ?? "",
             filial: uc.filial ?? "",
+            area: uc.area ?? "",
             situacao: uc.situacao,
             observacoes: uc.observacoes ?? "",
           }
@@ -90,6 +94,11 @@ export function FormularioUc({
   const fazendas = useMemo(
     () => [...new Set(existentes.map((u) => u.fazenda))].sort(),
     [existentes],
+  );
+  const areasExistentes = useMemo(() => existentes.map((u) => u.area), [existentes]);
+  const areas = useMemo(
+    () => listaAreas(cfg?.cadastro.areas ?? AREAS_PADRAO, areasExistentes),
+    [cfg, areasExistentes],
   );
   const filiais = useMemo(
     () => [...new Set(existentes.map((u) => u.filial).filter((f): f is string => !!f))].sort(),
@@ -107,6 +116,7 @@ export function FormularioUc({
     if (!normalizarCnpj(v.cnpj)) e.cnpj = "Informe o CNPJ.";
     else if (!cnpjValido(v.cnpj)) e.cnpj = "CNPJ inválido (dígitos verificadores não conferem).";
     if (cfg?.cadastro.filial_obrigatoria && !v.filial.trim()) e.filial = "Informe a filial.";
+    if (cfg?.cadastro.area_obrigatoria && !v.area.trim()) e.area = "Informe a área.";
     if (cfg?.cadastro.endereco_obrigatorio && !v.endereco.trim())
       e.endereco = "Informe o endereço.";
     setErros(e);
@@ -123,6 +133,7 @@ export function FormularioUc({
       cnpj: normalizarCnpj(v.cnpj),
       endereco: v.endereco.trim() || null,
       filial: v.filial.trim() || null,
+      area: canonizarArea(v.area, cfg?.cadastro.areas ?? AREAS_PADRAO, areasExistentes),
       situacao: v.situacao,
       observacoes: v.observacoes.trim() || null,
     };
@@ -209,6 +220,38 @@ export function FormularioUc({
                 <SelectItem value="inativa">Inativa</SelectItem>
               </SelectContent>
             </Select>
+          </Campo>
+          <Campo
+            rotulo={`Área${cfg?.cadastro.area_obrigatoria ? " *" : ""}`}
+            erro={erros.area}
+            className="sm:col-span-2"
+          >
+            <Input
+              {...campo("area")}
+              list="lista-areas"
+              placeholder="Ex.: Agrícola, Pecuária, Seringal, Administrativo, Oficina"
+            />
+            <datalist id="lista-areas">
+              {areas.map((a) => (
+                <option key={a} value={a} />
+              ))}
+            </datalist>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {areas.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setV((x) => ({ ...x, area: a }))}
+                  className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+                    chaveTexto(v.area) === chaveTexto(a)
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
           </Campo>
           <Campo
             rotulo={`Endereço${cfg?.cadastro.endereco_obrigatorio ? " *" : ""}`}

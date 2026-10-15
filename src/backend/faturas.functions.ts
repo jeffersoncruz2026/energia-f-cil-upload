@@ -412,7 +412,7 @@ export const recalcularAlertas = createServerFn({ method: "POST" })
         buscarTodos<UcAnalise>(
           supabase,
           "unidades_consumidoras",
-          "id, numero_uc, fazenda, cnpj, filial, situacao",
+          "id, numero_uc, fazenda, cnpj, filial, situacao, area",
         ),
         supabase.from("configuracoes").select("valor").eq("chave", "alertas").maybeSingle(),
       ]);

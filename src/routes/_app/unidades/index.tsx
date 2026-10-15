@@ -69,6 +69,7 @@ function PaginaUnidades() {
   const [editando, setEditando] = useState<UnidadeConsumidora | null>(null);
   const [importando, setImportando] = useState(false);
   const [situacao, setSituacao] = useState<"todas" | "ativa" | "inativa">("todas");
+  const [area, setArea] = useState<string>("__todas");
   const [confirmar, setConfirmar] = useState<{
     tipo: "situacao" | "excluir";
     uc: UnidadeConsumidora;
@@ -84,8 +85,20 @@ function PaginaUnidades() {
   }, [faturas]);
 
   const dados = useMemo(
-    () => (ucs ?? []).filter((u) => situacao === "todas" || u.situacao === situacao),
-    [ucs, situacao],
+    () =>
+      (ucs ?? []).filter(
+        (u) =>
+          (situacao === "todas" || u.situacao === situacao) &&
+          (area === "__todas" || (area === "__sem" ? !u.area : u.area === area)),
+      ),
+    [ucs, situacao, area],
+  );
+  const areas = useMemo(
+    () =>
+      [...new Set((ucs ?? []).map((u) => u.area).filter((a): a is string => !!a))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
+    [ucs],
   );
 
   const colunas: Coluna<UnidadeConsumidora>[] = [
@@ -98,6 +111,7 @@ function PaginaUnidades() {
     { id: "fazenda", titulo: "Fazenda", valor: (u) => u.fazenda },
     { id: "cnpj", titulo: "CNPJ", valor: (u) => formatarCnpj(u.cnpj) },
     { id: "filial", titulo: "Filial", valor: (u) => u.filial },
+    { id: "area", titulo: "Área", valor: (u) => u.area },
     { id: "endereco", titulo: "Endereço", valor: (u) => u.endereco, classe: "max-w-xs truncate" },
     {
       id: "situacao",
@@ -197,16 +211,32 @@ function PaginaUnidades() {
           ordenacaoInicial={{ id: "fazenda", direcao: "asc" }}
           aoClicarLinha={(u) => navigate({ to: "/unidades/$id", params: { id: u.id } })}
           barraExtra={
-            <Select value={situacao} onValueChange={(v) => setSituacao(v as typeof situacao)}>
-              <SelectTrigger className="w-40" aria-label="Filtrar por situação">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as situações</SelectItem>
-                <SelectItem value="ativa">Ativas</SelectItem>
-                <SelectItem value="inativa">Inativas</SelectItem>
-              </SelectContent>
-            </Select>
+            <>
+              <Select value={area} onValueChange={setArea}>
+                <SelectTrigger className="w-44" aria-label="Filtrar por área">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__todas">Todas as áreas</SelectItem>
+                  {areas.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__sem">Sem área definida</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={situacao} onValueChange={(v) => setSituacao(v as typeof situacao)}>
+                <SelectTrigger className="w-40" aria-label="Filtrar por situação">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as situações</SelectItem>
+                  <SelectItem value="ativa">Ativas</SelectItem>
+                  <SelectItem value="inativa">Inativas</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
           }
           acoesLinha={(u) => (
             <DropdownMenu>

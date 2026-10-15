@@ -12,7 +12,7 @@ Projeto conectado ao [Lovable](https://lovable.dev/projects/51e4de4a-aac7-4385-9
 | Menu                            | O que faz                                                                                                                                                                                                                                                        |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Dashboard**                   | 10 indicadores e 8 gráficos calculados a partir das faturas importadas, com filtros por período, fazenda, UC, filial, CNPJ, situação da UC e critério de consolidação (competência ou emissão). Clique em um mês para ver as faturas.                            |
-| **Unidades Consumidoras**       | Cadastro, edição, inativação e exclusão (somente sem faturas). Importação por planilha XLSX/CSV com modelo para download, identificação automática de colunas, prévia (inclusões, alterações campo a campo, rejeições por linha) e modos inclusão / atualização. |
+| **Unidades Consumidoras**       | Cadastro, edição, inativação e exclusão (somente sem faturas). Cada UC tem uma **Área** (Agrícola, Pecuária, Seringal, Administrativo, Oficina… — lista configurável) para analisar e filtrar por área de cada fazenda. Importação por planilha XLSX/CSV no padrão *Numero da UC, Fazenda, CNPJ, Endereço, Filial, Situação, Área*, com modelo para download, identificação automática de colunas, prévia (inclusões, alterações campo a campo, rejeições por linha) e modos inclusão / atualização. |
 | **Importar XML**                | Upload de vários XMLs (arrastar e soltar). Os arquivos são lidos **no servidor**, pré-analisados (duplicidade, UC, valores, avisos) e só gravados após confirmação. XML original guardado em armazenamento privado.                                              |
 | **Faturas**                     | Lista com filtros; detalhe com dados extraídos, itens, XML original, reprocessamento, associação/correção da UC, confirmação de pagamento e exclusão lógica.                                                                                                     |
 | **Pendências de Identificação** | Faturas cuja UC não está cadastrada: selecionar UC existente, cadastrar nova UC, reprocessar identificação ou o XML.                                                                                                                                             |
@@ -27,7 +27,7 @@ Busca global (Ctrl+K) por número da UC, fazenda, CNPJ, filial e número/chave d
 
 - **Frontend**: TanStack Start (React 19, roteamento por arquivos em `src/routes`), Tailwind 4, shadcn/ui, Recharts.
 - **Backend**: Supabase (PostgreSQL, Auth, Storage) + _server functions_ do TanStack Start (`src/backend/faturas.functions.ts`).
-- **Banco**: `supabase/migrations/20261015120000_sistema_gestao_energia.sql`.
+- **Banco**: migrações em `drizzle/migrations/` (Lovable Cloud), espelhadas em `supabase/migrations/`.
 
 ### Fluxo de importação de XML
 

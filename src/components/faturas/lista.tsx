@@ -9,7 +9,13 @@ import { formatarCnpj } from "@/lib/formatacao";
 import type { Fatura } from "@/lib/tipos";
 
 export type FaturaLista = Omit<Fatura, "dados_extraidos_json"> & {
-  uc: { numero_uc: string; fazenda: string; filial: string | null; cnpj: string } | null;
+  uc: {
+    numero_uc: string;
+    fazenda: string;
+    filial: string | null;
+    area: string | null;
+    cnpj: string;
+  } | null;
 };
 
 export const CAMPOS_LISTA = [
@@ -62,7 +68,7 @@ export const CAMPOS_LISTA = [
   "excluida",
   "motivo_exclusao",
   "created_at",
-  "uc:unidades_consumidoras(numero_uc,fazenda,filial,cnpj)",
+  "uc:unidades_consumidoras(numero_uc,fazenda,filial,area,cnpj)",
 ].join(",");
 
 export function useFaturasLista() {
@@ -93,6 +99,7 @@ export function colunasFatura(): Coluna<FaturaLista>[] {
     },
     { id: "uc", titulo: "UC", valor: (f) => f.uc?.numero_uc ?? f.numero_uc_extraido },
     { id: "fazenda", titulo: "Fazenda", valor: (f) => f.uc?.fazenda ?? null },
+    { id: "area", titulo: "Área", valor: (f) => f.uc?.area ?? null },
     { id: "filial", titulo: "Filial", valor: (f) => f.uc?.filial ?? null, oculta: true },
     {
       id: "cnpj",
