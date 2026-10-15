@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, RefreshCw, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -28,7 +28,8 @@ import { ROTULOS_PAPEL, useAuth } from "@/lib/auth";
 import { CHAVES, mensagemErro, useConfiguracoes } from "@/lib/consultas";
 import type { BaseCusto } from "@/lib/analise/calculos";
 import type { ConfigAlertas, ConfigCadastroUc, CriterioConsolidacao, Papel } from "@/lib/tipos";
-import { recalcularAlertas } from "@/backend/faturas.functions";
+import { recalcularAlertas, reprocessarFatura } from "@/backend/faturas.functions";
+import { buscarTodos } from "@/lib/consulta-paginada";
 
 export const Route = createFileRoute("/_app/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — Controle Energia" }] }),
@@ -54,8 +55,9 @@ function PaginaConfiguracoes() {
         <TabsContent value="analise">
           <ConfigAnalise />
         </TabsContent>
-        <TabsContent value="cadastro">
+        <TabsContent value="cadastro" className="space-y-4">
           <ConfigCadastro />
+          {pode("importar") && <ReprocessarTodas />}
         </TabsContent>
         {pode("configurar") && (
           <TabsContent value="usuarios">
@@ -261,6 +263,71 @@ function ConfigAnalise() {
             Somente administradores podem alterar as regras.
           </p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Relê o XML original de todas as faturas com as regras atuais de leitura
+ * (ex.: após correção na identificação de créditos de energia).
+ */
+function ReprocessarTodas() {
+  const qc = useQueryClient();
+  const reprocessar = useServerFn(reprocessarFatura);
+  const recalcular = useServerFn(recalcularAlertas);
+  const [progresso, setProgresso] = useState<{ feitas: number; total: number } | null>(null);
+  const executar = async () => {
+    try {
+      const faturas = await buscarTodos<{ id: string; arquivo_xml_path: string | null }>(
+        supabase,
+        "faturas",
+        "id, arquivo_xml_path",
+        { excluida: false },
+      );
+      const ids = faturas.filter((f) => f.arquivo_xml_path).map((f) => f.id);
+      let falhas = 0;
+      setProgresso({ feitas: 0, total: ids.length });
+      for (const [i, id] of ids.entries()) {
+        try {
+          await reprocessar({ data: { faturaId: id } });
+        } catch {
+          falhas += 1;
+        }
+        setProgresso({ feitas: i + 1, total: ids.length });
+      }
+      await recalcular();
+      await qc.invalidateQueries();
+      if (falhas)
+        toast.warning(`${ids.length - falhas} faturas reprocessadas, ${falhas} com falha.`);
+      else toast.success(`${ids.length} faturas reprocessadas e alertas recalculados.`);
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setProgresso(null);
+    }
+  };
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Reprocessar faturas importadas</CardTitle>
+        <CardDescription>
+          Lê novamente o XML original de todas as faturas com as regras atuais (itens, créditos de
+          energia, custo antes da compensação) e recalcula os alertas. Pagamentos confirmados e a UC
+          associada são mantidos.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="outline" onClick={executar} disabled={!!progresso}>
+          {progresso ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          {progresso
+            ? `Reprocessando ${progresso.feitas} de ${progresso.total}…`
+            : "Reprocessar todas as faturas"}
+        </Button>
       </CardContent>
     </Card>
   );

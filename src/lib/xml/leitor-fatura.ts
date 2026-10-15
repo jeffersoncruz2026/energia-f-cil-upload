@@ -16,6 +16,7 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { chaveAcessoValida, normalizarCnpj } from "../documentos";
 import type { CamposValoresFatura } from "../tipos";
 import {
+  ajustarTipoPeloValor,
   classificarItem,
   identificarComponente,
   identificarPosto,
@@ -404,6 +405,7 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
   // Itens
   const itens: ItemExtraido[] = [];
   const medicoes = new Map<string, Medicao>();
+  const comScee = !!filho(inf, "gSCEE");
   for (const nfdet of lista(inf, "NFdet")) {
     const chaveAnterior = atributo(nfdet, "chNF3eAnt");
     for (const det of lista(nfdet, "det")) {
@@ -413,12 +415,13 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
       const anterior = !filho(det, "detItem");
       const prod = filho(detItem, "prod");
       const descricao = txt(prod, "xProd");
-      const tipo = classificarItem(descricao);
       const gTarif = filho(detItem, "gTarif");
       const devolucao = txt(prod, "indDevolucao") === "1";
       const sinal = devolucao ? -1 : 1;
       const qtd = num(txt(prod, "qFaturada"));
       const vProd = num(txt(prod, "vProd"));
+      const valorItem = vProd == null ? null : vProd < 0 ? vProd : vProd * sinal;
+      const tipo = ajustarTipoPeloValor(classificarItem(descricao), descricao, valorItem, comScee);
       const imposto = filho(detItem, "imposto");
       const codigoPosto = txt(gTarif, "cPosTarif") ?? buscarPrimeiroTexto(prod, "cPosTarif");
 
@@ -430,7 +433,7 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
         quantidade: qtd == null ? null : qtd < 0 ? qtd : qtd * sinal,
         unidade_medida: identificarUnidade(txt(prod, "uMed"), descricao, tipo),
         valor_unitario: num(txt(prod, "vItem")),
-        valor_total: vProd == null ? null : vProd < 0 ? vProd : vProd * sinal,
+        valor_total: valorItem,
         tipo_item: tipo,
         componente: identificarComponente(descricao),
         posto_tarifario: identificarPosto(codigoPosto, descricao),
@@ -576,7 +579,10 @@ function lerNF3e(raiz: No, inf: No): ResultadoLeitura {
     valor_juros: somaValor(porTipo("juros")),
     valor_encargos: somaValor(porTipo("encargo")),
     valor_descontos: descontos == null ? null : Math.abs(descontos),
-    valor_compensacao: somaValor([...porTipo("injecao"), ...porTipo("compensacao")]),
+    // Créditos abatidos = apenas os lançamentos negativos de injeção/compensação.
+    valor_compensacao: somaValor(
+      [...porTipo("injecao"), ...porTipo("compensacao")].filter((i) => (i.valor_total ?? 0) < 0),
+    ),
     valor_outros: somaValor([...porTipo("outros"), ...porTipo("tributo")]),
   };
 

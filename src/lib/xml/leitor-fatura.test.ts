@@ -154,6 +154,51 @@ describe("leitura de NF3e", () => {
     expect(custoDaFatura(fatura, "faturado")).toBe(0);
   });
 
+  it("energia SCEE cobrada e crédito compensado não se anulam (custo antes dos créditos)", () => {
+    const { fatura, itens } = lerFatura(
+      gerarNF3e({
+        scee: { vSaldAtual: 500 },
+        itens: [
+          { descricao: "Energia SCEE ISENTA TUSD", qtd: 1800, uMed: "2", vProd: 758.72 },
+          { descricao: "Energia SCEE ISENTA TE", qtd: 1800, uMed: "2", vProd: 600 },
+          {
+            descricao: "Energia compensada GD II TUSD",
+            qtd: 1800,
+            uMed: "2",
+            vProd: 758.72,
+            devolucao: true,
+          },
+          {
+            descricao: "Energia compensada GD II TE",
+            qtd: 1800,
+            uMed: "2",
+            vProd: 600,
+            devolucao: true,
+          },
+        ],
+      }),
+    );
+    expect(itens.slice(0, 2).map((i) => i.tipo_item)).toEqual(["consumo", "consumo"]);
+    expect(fatura.consumo_kwh).toBe(1800);
+    expect(fatura.valor_total).toBe(0);
+    expect(fatura.valor_compensacao).toBe(-1358.72);
+    expect(custoDaFatura(fatura)).toBe(1358.72);
+    expect(custoDaFatura(fatura, "faturado")).toBe(0);
+  });
+
+  it("energia com valor negativo é crédito apenas em fatura com SCEE", () => {
+    const itensXml = [
+      { descricao: "Consumo Ativo TUSD", qtd: 1000, uMed: "2", vProd: 500 },
+      { descricao: "Consumo Ativo TUSD", qtd: 1000, uMed: "2", vProd: 500, devolucao: true },
+    ];
+    const comScee = lerFatura(gerarNF3e({ scee: {}, itens: itensXml }));
+    expect(comScee.itens[1]!.tipo_item).toBe("compensacao");
+    expect(custoDaFatura(comScee.fatura)).toBe(500);
+    const semScee = lerFatura(gerarNF3e({ itens: itensXml }));
+    expect(semScee.itens[1]!.tipo_item).toBe("consumo");
+    expect(semScee.fatura.valor_compensacao).toBeNull();
+  });
+
   it("identifica documento sem protocolo e documento substituto", () => {
     const semProt = lerFatura(gerarNF3e({ protocolo: false }));
     expect(semProt.fatura.status_documento).toBe("sem_protocolo");
