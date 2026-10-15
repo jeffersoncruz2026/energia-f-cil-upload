@@ -33,6 +33,7 @@ import {
   CartaoGrafico,
   COR_CONSUMO,
   COR_CUSTO,
+  COR_SOLAR,
   GraficoMensal,
   SemDadosGrafico,
 } from "@/components/app/graficos";
@@ -592,8 +593,8 @@ function DetalheUc() {
                 <GraficoLinhas
                   dados={meses}
                   series={[
-                    { campo: "injetada", rotulo: "Injetada", cor: COR_CUSTO },
-                    { campo: "compensada", rotulo: "Compensada", cor: COR_CONSUMO },
+                    { campo: "injetada", rotulo: "Injetada", cor: COR_SOLAR },
+                    { campo: "compensada", rotulo: "Compensada", cor: COR_CUSTO },
                   ]}
                   formatar={(v) => `${formatarNumero(v)} kWh`}
                 />

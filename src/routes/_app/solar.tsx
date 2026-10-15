@@ -535,8 +535,8 @@ function GraficoEnergiaGd({
     return <SemDadosGrafico />;
   const series = [
     { campo: "injetadaKwh", rotulo: "Injetada", cor: COR_SOLAR },
-    { campo: "creditosKwh", rotulo: "Créditos compensados", cor: COR_CONSUMO },
-    { campo: "consumoKwh", rotulo: "Consumo", cor: COR_CUSTO },
+    { campo: "creditosKwh", rotulo: "Créditos compensados", cor: COR_CUSTO },
+    { campo: "consumoKwh", rotulo: "Consumo", cor: COR_CONSUMO },
   ] as const;
   return (
     <ResponsiveContainer width="100%" height={260}>
