@@ -10,33 +10,190 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppAlertasRouteImport } from './routes/_app/alertas'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppHistoricoRouteImport } from './routes/_app/historico'
+import { Route as AppImportarRouteImport } from './routes/_app/importar'
+import { Route as AppPendenciasRouteImport } from './routes/_app/pendencias'
+import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppFaturasIndexRouteImport } from './routes/_app/faturas/index'
+import { Route as AppFaturasIdRouteImport } from './routes/_app/faturas/$id'
+import { Route as AppUnidadesIndexRouteImport } from './routes/_app/unidades/index'
+import { Route as AppUnidadesIdRouteImport } from './routes/_app/unidades/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAlertasRoute = AppAlertasRouteImport.update({
+  id: '/alertas',
+  path: '/alertas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoRoute = AppHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportarRoute = AppImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPendenciasRoute = AppPendenciasRouteImport.update({
+  id: '/pendencias',
+  path: '/pendencias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFaturasIndexRoute = AppFaturasIndexRouteImport.update({
+  id: '/faturas/',
+  path: '/faturas/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFaturasIdRoute = AppFaturasIdRouteImport.update({
+  id: '/faturas/$id',
+  path: '/faturas/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUnidadesIndexRoute = AppUnidadesIndexRouteImport.update({
+  id: '/unidades/',
+  path: '/unidades/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUnidadesIdRoute = AppUnidadesIdRouteImport.update({
+  id: '/unidades/$id',
+  path: '/unidades/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/alertas': typeof AppAlertasRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/historico': typeof AppHistoricoRoute
+  '/importar': typeof AppImportarRoute
+  '/pendencias': typeof AppPendenciasRoute
+  '/relatorios': typeof AppRelatoriosRoute
+  '/faturas/$id': typeof AppFaturasIdRoute
+  '/unidades/$id': typeof AppUnidadesIdRoute
+  '/faturas/': typeof AppFaturasIndexRoute
+  '/unidades/': typeof AppUnidadesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/alertas': typeof AppAlertasRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/historico': typeof AppHistoricoRoute
+  '/importar': typeof AppImportarRoute
+  '/pendencias': typeof AppPendenciasRoute
+  '/relatorios': typeof AppRelatoriosRoute
+  '/faturas/$id': typeof AppFaturasIdRoute
+  '/unidades/$id': typeof AppUnidadesIdRoute
+  '/faturas': typeof AppFaturasIndexRoute
+  '/unidades': typeof AppUnidadesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/alertas': typeof AppAlertasRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/historico': typeof AppHistoricoRoute
+  '/_app/importar': typeof AppImportarRoute
+  '/_app/pendencias': typeof AppPendenciasRoute
+  '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/faturas/$id': typeof AppFaturasIdRoute
+  '/_app/unidades/$id': typeof AppUnidadesIdRoute
+  '/_app/faturas/': typeof AppFaturasIndexRoute
+  '/_app/unidades/': typeof AppUnidadesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/alertas'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/historico'
+    | '/importar'
+    | '/pendencias'
+    | '/relatorios'
+    | '/faturas/$id'
+    | '/unidades/$id'
+    | '/faturas/'
+    | '/unidades/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/alertas'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/historico'
+    | '/importar'
+    | '/pendencias'
+    | '/relatorios'
+    | '/faturas/$id'
+    | '/unidades/$id'
+    | '/faturas'
+    | '/unidades'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/alertas'
+    | '/_app/configuracoes'
+    | '/_app/dashboard'
+    | '/_app/historico'
+    | '/_app/importar'
+    | '/_app/pendencias'
+    | '/_app/relatorios'
+    | '/_app/faturas/$id'
+    | '/_app/unidades/$id'
+    | '/_app/faturas/'
+    | '/_app/unidades/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +205,134 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/alertas': {
+      id: '/_app/alertas'
+      path: '/alertas'
+      fullPath: '/alertas'
+      preLoaderRoute: typeof AppAlertasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico': {
+      id: '/_app/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AppHistoricoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/importar': {
+      id: '/_app/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AppImportarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pendencias': {
+      id: '/_app/pendencias'
+      path: '/pendencias'
+      fullPath: '/pendencias'
+      preLoaderRoute: typeof AppPendenciasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/relatorios': {
+      id: '/_app/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/faturas/': {
+      id: '/_app/faturas/'
+      path: '/faturas'
+      fullPath: '/faturas/'
+      preLoaderRoute: typeof AppFaturasIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/faturas/$id': {
+      id: '/_app/faturas/$id'
+      path: '/faturas/$id'
+      fullPath: '/faturas/$id'
+      preLoaderRoute: typeof AppFaturasIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/unidades/': {
+      id: '/_app/unidades/'
+      path: '/unidades'
+      fullPath: '/unidades/'
+      preLoaderRoute: typeof AppUnidadesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/unidades/$id': {
+      id: '/_app/unidades/$id'
+      path: '/unidades/$id'
+      fullPath: '/unidades/$id'
+      preLoaderRoute: typeof AppUnidadesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAlertasRoute: typeof AppAlertasRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppHistoricoRoute: typeof AppHistoricoRoute
+  AppImportarRoute: typeof AppImportarRoute
+  AppPendenciasRoute: typeof AppPendenciasRoute
+  AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppFaturasIdRoute: typeof AppFaturasIdRoute
+  AppUnidadesIdRoute: typeof AppUnidadesIdRoute
+  AppFaturasIndexRoute: typeof AppFaturasIndexRoute
+  AppUnidadesIndexRoute: typeof AppUnidadesIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAlertasRoute: AppAlertasRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppHistoricoRoute: AppHistoricoRoute,
+  AppImportarRoute: AppImportarRoute,
+  AppPendenciasRoute: AppPendenciasRoute,
+  AppRelatoriosRoute: AppRelatoriosRoute,
+  AppFaturasIdRoute: AppFaturasIdRoute,
+  AppUnidadesIdRoute: AppUnidadesIdRoute,
+  AppFaturasIndexRoute: AppFaturasIndexRoute,
+  AppUnidadesIndexRoute: AppUnidadesIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
