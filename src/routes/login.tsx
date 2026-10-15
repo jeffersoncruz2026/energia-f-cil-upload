@@ -78,11 +78,16 @@ function Login() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
-        <div className="flex items-center gap-2 text-lg font-semibold">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <Zap className="h-5 w-5" />
+        <div className="space-y-6">
+          <div className="w-fit rounded-xl bg-white px-5 py-4 shadow-sm">
+            <img src="/logo-grupo-lage.png" alt="Grupo Otávio Lage" className="h-14 w-auto" />
           </div>
-          Controle Energia Elétrica
+          <div className="flex items-center gap-2 text-lg font-semibold">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+              <Zap className="h-5 w-5" />
+            </div>
+            Controle Energia Elétrica
+          </div>
         </div>
         <div>
           <h2 className="text-3xl font-semibold leading-tight text-white">
@@ -97,11 +102,9 @@ function Login() {
       </div>
       <div className="flex items-center justify-center bg-background p-6">
         <div className="w-full max-w-sm">
-          <div className="mb-6 flex items-center gap-2 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Zap className="h-5 w-5" />
-            </div>
-            <span className="font-semibold">Controle Energia Elétrica</span>
+          <div className="mb-6 space-y-3 lg:hidden">
+            <img src="/logo-grupo-lage.png" alt="Grupo Otávio Lage" className="h-12 w-auto" />
+            <span className="block font-semibold">Controle Energia Elétrica</span>
           </div>
           <Tabs defaultValue="entrar">
             <TabsList className="grid w-full grid-cols-2">

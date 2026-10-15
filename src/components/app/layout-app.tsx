@@ -165,7 +165,7 @@ export function LayoutApp({ children }: { children: ReactNode }) {
                   </div>
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate text-sm font-semibold">Controle Energia</span>
-                    <span className="truncate text-xs opacity-70">Gestão de energia rural</span>
+                    <span className="truncate text-xs opacity-70">Grupo Otávio Lage</span>
                   </div>
                 </Link>
               </SidebarMenuButton>
