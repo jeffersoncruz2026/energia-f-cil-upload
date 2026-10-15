@@ -29,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { ROTULOS_TIPO_ALERTA, type TipoAlerta } from "@/lib/analise/alertas";
+import { ehAmbienteEdicao } from "@/lib/ambiente";
 import { useAuth } from "@/lib/auth";
 import { buscarTodos } from "@/lib/consulta-paginada";
 import { CHAVES, invalidarDados, mensagemErro, useConfiguracoes } from "@/lib/consultas";
@@ -241,7 +242,7 @@ function PaginaAlertas() {
               <strong>Alerta confirmado</strong>: o desvio aparece em duas referências (mês anterior
               e mesmo mês do ano anterior/média histórica). <strong>Possível anomalia</strong>: uma
               referência, histórico insuficiente ou variação compatível com sazonalidade.{" "}
-              {pode("configurar") && (
+              {pode("configurar") && ehAmbienteEdicao() && (
                 <Link to="/configuracoes" className="underline">
                   Alterar limites
                 </Link>

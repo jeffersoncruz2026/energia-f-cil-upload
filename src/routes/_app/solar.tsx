@@ -63,6 +63,7 @@ import {
   type ResumoUcSolar,
 } from "@/lib/analise/solar";
 import { useFiltrosAnalise } from "@/lib/analise/use-filtros";
+import { ehAmbienteEdicao } from "@/lib/ambiente";
 import { useAuth } from "@/lib/auth";
 import { buscarItensGd, buscarTodos } from "@/lib/consulta-paginada";
 import { CHAVES, mensagemErro, useUcs } from "@/lib/consultas";
@@ -231,7 +232,8 @@ function PaginaSolar() {
           titulo="Nenhuma fatura com geração distribuída"
           descricao="Quando forem importadas faturas com energia injetada, créditos compensados ou informações do sistema de compensação (grupo gSCEE da NF3e), as análises de energia solar aparecem aqui."
           acao={
-            pode("importar") && (
+            pode("importar") &&
+            ehAmbienteEdicao() && (
               <Button asChild>
                 <Link to="/importar">
                   <Upload className="mr-2 h-4 w-4" /> Importar XML

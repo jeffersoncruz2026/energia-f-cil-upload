@@ -45,6 +45,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ehAmbienteEdicao, rotaSoEdicao } from "@/lib/ambiente";
 import { ROTULOS_PAPEL, useAuth } from "@/lib/auth";
 import { usePendentesCount } from "@/lib/consultas";
 
@@ -73,10 +74,12 @@ function MenuLateral() {
   const { data: pendentes } = usePendentesCount();
   const { setOpenMobile, isMobile } = useSidebar();
   const fechar = () => isMobile && setOpenMobile(false);
+  const edicao = ehAmbienteEdicao();
+  const itens = edicao ? MENU : MENU.filter((item) => !rotaSoEdicao(item.para));
 
   return (
     <SidebarMenu>
-      {MENU.map((item) => {
+      {itens.map((item) => {
         const ativo = caminho === item.para || caminho.startsWith(`${item.para}/`);
         return (
           <SidebarMenuItem key={item.para}>
@@ -86,7 +89,7 @@ function MenuLateral() {
                 <span>{item.rotulo}</span>
               </Link>
             </SidebarMenuButton>
-            {item.para === "/faturas" && (
+            {item.para === "/faturas" && edicao && (
               <SidebarMenuSub>
                 <SidebarMenuSubItem>
                   <SidebarMenuSubButton asChild isActive={caminho === "/pendencias"}>
@@ -98,7 +101,7 @@ function MenuLateral() {
                 </SidebarMenuSubItem>
               </SidebarMenuSub>
             )}
-            {item.para === "/faturas" && !!pendentes && (
+            {item.para === "/faturas" && edicao && !!pendentes && (
               <SidebarMenuBadge className="rounded-full bg-warning px-1.5 text-warning-foreground">
                 {pendentes}
               </SidebarMenuBadge>

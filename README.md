@@ -24,6 +24,15 @@ Projeto conectado ao [Lovable](https://lovable.dev/projects/51e4de4a-aac7-4385-9
 
 Busca global (Ctrl+K) por número da UC, fazenda, CNPJ, filial e número/chave da fatura.
 
+### Projeto publicado × edição no Lovable
+
+No **projeto publicado** os usuários veem apenas **Dashboard, Faturas, Energia Solar (GD), Análises e
+Alertas e Relatórios** (a análise de uma UC continua acessível pelos gráficos). **Unidades Consumidoras,
+Importar XML, Pendências, Histórico de Importações e Configurações** aparecem só no **preview do editor
+Lovable** (`*.lovableproject.com`, `id-preview--…`/`preview--…`) e no desenvolvimento local; no publicado,
+esses endereços redirecionam ao Dashboard (`src/lib/ambiente.ts`). O controle de acesso aos dados
+continua sendo feito pelos perfis.
+
 ## Arquitetura
 
 - **Frontend**: TanStack Start (React 19, roteamento por arquivos em `src/routes`), Tailwind 4, shadcn/ui, Recharts.
