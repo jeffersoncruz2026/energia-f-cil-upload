@@ -27,6 +27,7 @@ export interface ItemFixture {
   vProd: number;
   devolucao?: boolean;
   cPosTarif?: string;
+  cClass?: string;
   medida?: { tpGrMed: string; uMed: string; ant: number; atu: number; constante?: number };
   icms?: number;
 }
@@ -107,7 +108,7 @@ export function gerarNF3e(o: OpcoesNF3e = {}): string {
           : `<ICMS40><CST>40</CST></ICMS40>`;
       return `<det nItem="${idx + 1}"><detItem>
         <gTarif><dIniTarif>2025-04-22</dIniTarif><dFimTarif>2026-04-21</dFimTarif><tpAto>1</tpAto><nAto>3400</nAto><anoAto>2025</anoAto><tpTarif>1</tpTarif><cPosTarif>${it.cPosTarif ?? "0"}</cPosTarif><uMed>${it.uMed ?? "2"}</uMed><vTarifHom>${it.vItem ?? 0}</vTarifHom><vTarifAplic>${it.vItem ?? 0}</vTarifAplic></gTarif>
-        <prod><indOrigemQtd>1</indOrigemQtd>${medida}<cProd>${100 + idx}</cProd><xProd>${it.descricao}</xProd><cClass>0100101</cClass><CFOP>5258</CFOP>${it.uMed ? `<uMed>${it.uMed}</uMed>` : ""}${it.qtd != null ? `<qFaturada>${it.qtd}</qFaturada>` : ""}${it.vItem != null ? `<vItem>${it.vItem}</vItem>` : ""}<vProd>${it.vProd.toFixed(2)}</vProd>${it.devolucao ? "<indDevolucao>1</indDevolucao>" : ""}</prod>
+        <prod><indOrigemQtd>1</indOrigemQtd>${medida}<cProd>${100 + idx}</cProd><xProd>${it.descricao}</xProd><cClass>${it.cClass ?? "0100101"}</cClass><CFOP>5258</CFOP>${it.uMed ? `<uMed>${it.uMed}</uMed>` : ""}${it.qtd != null ? `<qFaturada>${it.qtd}</qFaturada>` : ""}${it.vItem != null ? `<vItem>${it.vItem}</vItem>` : ""}<vProd>${it.vProd.toFixed(2)}</vProd>${it.devolucao ? "<indDevolucao>1</indDevolucao>" : ""}</prod>
         <imposto>${icms}<PIS><CST>01</CST><vBC>${it.vProd}</vBC><pPIS>0.65</pPIS><vPIS>0</vPIS></PIS><COFINS><CST>01</CST><vBC>${it.vProd}</vBC><pCOFINS>3.00</pCOFINS><vCOFINS>0</vCOFINS></COFINS></imposto>
       </detItem></det>`;
     })

@@ -194,7 +194,7 @@ function DetalheFatura() {
     ["Multas", f.valor_multas],
     ["Juros", f.valor_juros],
     ["Encargos", f.valor_encargos],
-    ["Créditos abatidos (GD e consumo)", f.valor_compensacao],
+    ["Créditos abatidos (exceto energia solar)", f.valor_compensacao],
     ["Descontos", f.valor_descontos != null ? -f.valor_descontos : null],
     ["Outros", f.valor_outros],
   ];
