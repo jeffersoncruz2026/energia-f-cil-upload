@@ -19,6 +19,7 @@ import { Route as AppHistoricoRouteImport } from './routes/_app/historico'
 import { Route as AppImportarRouteImport } from './routes/_app/importar'
 import { Route as AppPendenciasRouteImport } from './routes/_app/pendencias'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppSolarRouteImport } from './routes/_app/solar'
 import { Route as AppFaturasIndexRouteImport } from './routes/_app/faturas/index'
 import { Route as AppFaturasIdRouteImport } from './routes/_app/faturas/$id'
 import { Route as AppUnidadesIndexRouteImport } from './routes/_app/unidades/index'
@@ -73,6 +74,11 @@ const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSolarRoute = AppSolarRouteImport.update({
+  id: '/solar',
+  path: '/solar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFaturasIndexRoute = AppFaturasIndexRouteImport.update({
   id: '/faturas/',
   path: '/faturas/',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/importar': typeof AppImportarRoute
   '/pendencias': typeof AppPendenciasRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/solar': typeof AppSolarRoute
   '/faturas/$id': typeof AppFaturasIdRoute
   '/unidades/$id': typeof AppUnidadesIdRoute
   '/faturas/': typeof AppFaturasIndexRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/importar': typeof AppImportarRoute
   '/pendencias': typeof AppPendenciasRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/solar': typeof AppSolarRoute
   '/faturas/$id': typeof AppFaturasIdRoute
   '/unidades/$id': typeof AppUnidadesIdRoute
   '/faturas': typeof AppFaturasIndexRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_app/importar': typeof AppImportarRoute
   '/_app/pendencias': typeof AppPendenciasRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/solar': typeof AppSolarRoute
   '/_app/faturas/$id': typeof AppFaturasIdRoute
   '/_app/unidades/$id': typeof AppUnidadesIdRoute
   '/_app/faturas/': typeof AppFaturasIndexRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/importar'
     | '/pendencias'
     | '/relatorios'
+    | '/solar'
     | '/faturas/$id'
     | '/unidades/$id'
     | '/faturas/'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/importar'
     | '/pendencias'
     | '/relatorios'
+    | '/solar'
     | '/faturas/$id'
     | '/unidades/$id'
     | '/faturas'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/_app/importar'
     | '/_app/pendencias'
     | '/_app/relatorios'
+    | '/_app/solar'
     | '/_app/faturas/$id'
     | '/_app/unidades/$id'
     | '/_app/faturas/'
@@ -268,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRelatoriosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/solar': {
+      id: '/_app/solar'
+      path: '/solar'
+      fullPath: '/solar'
+      preLoaderRoute: typeof AppSolarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/faturas/': {
       id: '/_app/faturas/'
       path: '/faturas'
@@ -307,6 +326,7 @@ interface AppRouteChildren {
   AppImportarRoute: typeof AppImportarRoute
   AppPendenciasRoute: typeof AppPendenciasRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppSolarRoute: typeof AppSolarRoute
   AppFaturasIdRoute: typeof AppFaturasIdRoute
   AppUnidadesIdRoute: typeof AppUnidadesIdRoute
   AppFaturasIndexRoute: typeof AppFaturasIndexRoute
@@ -321,6 +341,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImportarRoute: AppImportarRoute,
   AppPendenciasRoute: AppPendenciasRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
+  AppSolarRoute: AppSolarRoute,
   AppFaturasIdRoute: AppFaturasIdRoute,
   AppUnidadesIdRoute: AppUnidadesIdRoute,
   AppFaturasIndexRoute: AppFaturasIndexRoute,

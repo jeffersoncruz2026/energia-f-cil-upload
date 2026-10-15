@@ -93,7 +93,7 @@
   --ring: oklch(0.55 0.08 258);
   --chart-1: #2c4f8c; /* validado (dataviz): custo */
   --chart-2: #1f9d6b; /* validado (dataviz): consumo */
-  --chart-3: oklch(0.62 0.09 235);
+  --chart-3: #c47f0f; /* validado (dataviz): energia solar */
   --chart-4: oklch(0.72 0.1 190);
   --chart-5: oklch(0.74 0.13 75);
   --sidebar: oklch(0.255 0.055 260);
@@ -132,7 +132,7 @@
   --ring: oklch(0.6 0.06 255);
   --chart-1: #5b86d6;
   --chart-2: #22a876;
-  --chart-3: oklch(0.7 0.09 230);
+  --chart-3: #b87d1c;
   --chart-4: oklch(0.78 0.1 190);
   --chart-5: oklch(0.8 0.13 75);
   --sidebar: oklch(0.2 0.04 260);

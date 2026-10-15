@@ -21,6 +21,7 @@ import { formatarMoedaCompacta, formatarNumero, rotuloMes } from "@/lib/formatac
 
 export const COR_CUSTO = "var(--chart-1)";
 export const COR_CONSUMO = "var(--chart-2)";
+export const COR_SOLAR = "var(--chart-3)";
 
 const eixo = { fontSize: 11, fill: "var(--muted-foreground)" };
 

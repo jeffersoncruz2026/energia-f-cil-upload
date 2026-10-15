@@ -60,3 +60,27 @@ export async function buscarTodos<T>(
   }
   return resultado;
 }
+
+/** Itens de energia injetada/compensada (créditos de geração distribuída). */
+export async function buscarItensGd(cliente: SupabaseClient) {
+  const resultado: {
+    fatura_id: string;
+    tipo_item: string;
+    componente: string | null;
+    quantidade: number | null;
+    unidade_medida: string | null;
+    valor_total: number | null;
+  }[] = [];
+  for (let inicio = 0; ; inicio += TAMANHO_PAGINA) {
+    const { data, error } = await cliente
+      .from("itens_fatura")
+      .select("fatura_id, tipo_item, componente, quantidade, unidade_medida, valor_total")
+      .in("tipo_item", ["injecao", "compensacao"])
+      .order("id", { ascending: true })
+      .range(inicio, inicio + TAMANHO_PAGINA - 1);
+    if (error) throw error;
+    resultado.push(...((data ?? []) as typeof resultado));
+    if (!data || data.length < TAMANHO_PAGINA || inicio > 500_000) break;
+  }
+  return resultado;
+}
