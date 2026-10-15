@@ -1,24 +1,105 @@
-# Energia Fácil Upload
+# Controle Energia Elétrica — Gestão e Análise de Energia Rural
 
-crie tela para upload de dados de energia eletrica, simples por enquanto sem consumo de muitos creditos. ( Nome Controle Energia Eletrica)
+Aplicação web para gestão, controle e análise das despesas e do consumo de energia elétrica
+de uma fazenda com diversas unidades consumidoras (UCs). Importa os XMLs reais das notas
+fiscais de energia (NF3e), relaciona cada fatura à sua UC e gera indicadores, gráficos,
+alertas e relatórios exportáveis.
 
-This project was built with [Lovable](https://lovable.dev).
+Projeto conectado ao [Lovable](https://lovable.dev/projects/51e4de4a-aac7-4385-90e3-552f6886771f).
 
-## Build with Lovable
+## Funcionalidades
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/51e4de4a-aac7-4385-90e3-552f6886771f).
+| Menu                            | O que faz                                                                                                                                                                                                                                                        |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**                   | 10 indicadores e 8 gráficos calculados a partir das faturas importadas, com filtros por período, fazenda, UC, filial, CNPJ, situação da UC e critério de consolidação (competência ou emissão). Clique em um mês para ver as faturas.                            |
+| **Unidades Consumidoras**       | Cadastro, edição, inativação e exclusão (somente sem faturas). Importação por planilha XLSX/CSV com modelo para download, identificação automática de colunas, prévia (inclusões, alterações campo a campo, rejeições por linha) e modos inclusão / atualização. |
+| **Importar XML**                | Upload de vários XMLs (arrastar e soltar). Os arquivos são lidos **no servidor**, pré-analisados (duplicidade, UC, valores, avisos) e só gravados após confirmação. XML original guardado em armazenamento privado.                                              |
+| **Faturas**                     | Lista com filtros; detalhe com dados extraídos, itens, XML original, reprocessamento, associação/correção da UC, confirmação de pagamento e exclusão lógica.                                                                                                     |
+| **Pendências de Identificação** | Faturas cuja UC não está cadastrada: selecionar UC existente, cadastrar nova UC, reprocessar identificação ou o XML.                                                                                                                                             |
+| **Análises e Alertas**          | Regras configuráveis (consumo, custo, R$/kWh, ausência de fatura, duplicidade, consumo zerado/negativo, componentes tarifários, UCs semelhantes) com status pendente/analisado/resolvido.                                                                        |
+| **Relatórios**                  | 10 relatórios com filtros, seleção de colunas, ordenação e exportação Excel/CSV apenas dos registros filtrados.                                                                                                                                                  |
+| **Histórico de Importações**    | Data, usuário, arquivo, resultado, erros e avisos de cada importação.                                                                                                                                                                                            |
+| **Configurações**               | Limites das regras de análise, campos obrigatórios do cadastro, critério padrão, usuários e perfis, registro de operações (auditoria) e metodologia.                                                                                                             |
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+Busca global (Ctrl+K) por número da UC, fazenda, CNPJ, filial e número/chave da fatura.
 
-## Development
+## Arquitetura
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+- **Frontend**: TanStack Start (React 19, roteamento por arquivos em `src/routes`), Tailwind 4, shadcn/ui, Recharts.
+- **Backend**: Supabase (PostgreSQL, Auth, Storage) + _server functions_ do TanStack Start (`src/backend/faturas.functions.ts`).
+- **Banco**: `supabase/migrations/20261015120000_sistema_gestao_energia.sql`.
+
+### Fluxo de importação de XML
+
+1. O navegador envia o conteúdo do arquivo para a server function com o token da sessão.
+2. O servidor valida o usuário e a permissão, rejeita DOCTYPE/ENTITY (XXE), valida a estrutura e
+   identifica o leiaute (`src/lib/xml/leitor-fatura.ts`).
+3. Extrai os campos **efetivamente presentes** (o que não existe fica `null` = indisponível).
+4. Calcula o hash SHA-256 do arquivo e guarda o XML original no bucket privado `faturas-xml`.
+5. Chama a função do banco `registrar_fatura`, que em uma única transação: impede duplicidade
+   (chave de acesso → hash → emitente+modelo+série+número), associa a UC **somente pelo número da UC**
+   (CNPJ e endereço são usados apenas para apontar divergências), grava fatura + itens, aplica
+   cancelamentos/substituições conhecidos e registra o resultado no histórico.
+6. Os alertas são recalculados e os indicadores atualizados.
+
+### Leiautes suportados
+
+- **NF3e (modelo 66)** — `nf3eProc` (com protocolo) ou `NF3e`; grupos `ide`, `emit`, `dest`,
+  `acessante/idAcesso` (UC), `gSub`, `gGrContrat`, `gMed`, `NFdet/det/detItem` (`gTarif`, `prod`,
+  `gMedicao/gMedida`, `imposto`), `total`, `gFat`, `gSCEE`, `gANEEL`, `infAdic`, `protNF3e`.
+- **Eventos** — `procEventoNF3e`/`procEventoNFe`; cancelamento (110111) homologado marca a fatura como cancelada (também se o evento chegar antes da fatura).
+- **NF-e (modelo 55) de energia** — UC e competência buscadas nas informações complementares; quantidade em MWh convertida para kWh.
+- Substituição (`finNF3e=2` + `gSub/chNF3e`) marca o documento original como substituído.
+
+### Classificação dos itens
+
+Os itens são classificados pela descrição (`src/lib/xml/classificacao-itens.ts`): consumo (TUSD/TE),
+demanda, reativo, energia injetada, compensação, bandeira, CIP/COSIP, multa, juros, encargos,
+descontos e outros. `indDevolucao=1` é tratado como valor negativo. Quando a soma dos itens difere
+do total do documento, um aviso é registrado — o total do documento (vNF) é sempre a referência.
+
+## Regras de cálculo
+
+- **Faturas válidas**: não excluídas, não canceladas, não substituídas, associadas a uma UC e com valor total. Pendentes de identificação não entram nos indicadores.
+- **Custo total**: soma do valor total (vNF) das faturas válidas. Componentes e tributos nunca são somados ao total.
+- **Consumo total**: soma do consumo (kWh) das faturas com consumo disponível. O consumo vem dos itens de energia ativa faturada sem somar duas vezes a mesma energia cobrada em TUSD e TE; na ausência, da medição (sem duplicar medições repetidas em vários itens).
+- **Custo médio por UC**: custo total ÷ UCs com faturas válidas no período.
+- **Custo por kWh**: valor total ÷ consumo, apenas faturas com consumo positivo (mesmo conjunto no numerador e no denominador).
+- **Variação %**: (atual − anterior) ÷ anterior × 100, quando anterior ≠ 0; período anterior de mesma duração.
+- **Período**: por competência (CompetFat) ou por data de emissão, escolhido nos filtros.
+- **Valor faturado ≠ pago**: o pagamento só é confirmado manualmente (data e valor pago).
+
+### Alertas
+
+Comparações por competência; consumo e custo comparados por **média diária** quando há dias
+faturados. _Alerta confirmado_ = desvio em duas referências (mês anterior **e** mesmo mês do ano
+anterior ou média histórica). _Possível anomalia_ = uma referência, histórico insuficiente ou
+variação compatível com sazonalidade. Alertas não afirmam desperdício; indicam o que verificar.
+Ao recalcular, status e observações já registrados são preservados.
+
+## Segurança
+
+- Autenticação Supabase; o **primeiro usuário cadastrado vira administrador**, os demais entram como _consulta_.
+- Perfis: **admin** (tudo), **gestor** (visualizar, cadastrar, importar, editar), **operador** (visualizar, cadastrar, importar), **consulta** (visualizar/exportar).
+- RLS em todas as tabelas; faturas, itens e alertas só são gravados por funções do banco que verificam permissão.
+- Bucket `faturas-xml` privado; limites de 5 MB por XML, 200 arquivos por lote, 10 MB e 5.000 linhas por planilha.
+- Exclusão lógica de faturas (com motivo, restaurável); UCs com faturas só podem ser inativadas.
+- Auditoria (`log_operacoes`) de alterações em UCs, faturas, permissões, configurações e alertas.
+- Somente a chave pública (publishable/anon) é usada; nenhuma chave administrativa no frontend ou no servidor.
+
+## Configuração
+
+1. Conecte um projeto Supabase (no Lovable: ative o **Lovable Cloud**/integração Supabase).
+2. Aplique a migração de `supabase/migrations/`.
+3. Variáveis de ambiente (veja `.env.example`): `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`.
+4. Crie o primeiro usuário em `/login` → aba “Criar acesso” (ele será administrador).
+
+## Desenvolvimento
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install       # ou npm i
+bun run dev       # servidor local
+bun run test      # testes unitários (parser NF3e, cálculos, alertas, planilhas)
+bun run lint
+bun run build
 ```
