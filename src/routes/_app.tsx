@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 
 import { LayoutApp } from "@/components/app/layout-app";
 import { ConfiguracaoPendente } from "@/components/app/configuracao-pendente";
-import { supabaseConfigurado } from "@/integrations/supabase/client";
+import { backendConfigurado } from "@/lib/configuracao-backend";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app")({

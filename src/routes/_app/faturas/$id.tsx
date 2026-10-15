@@ -40,7 +40,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { BUCKET_XML, supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { BUCKET_XML } from "@/lib/configuracao-backend";
 import { useAuth } from "@/lib/auth";
 import { CHAVES, invalidarDados, mensagemErro } from "@/lib/consultas";
 import {

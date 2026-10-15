@@ -18,7 +18,7 @@ import {
   TAMANHO_MAXIMO_XML,
   type ResultadoLeitura,
 } from "@/lib/xml/leitor-fatura";
-import { BUCKET_XML } from "@/integrations/supabase/client";
+import { BUCKET_XML } from "@/lib/configuracao-backend";
 
 import { comAutenticacao, ErroNegocio, exigirPermissao, mensagemSegura } from "./autenticacao";
 
