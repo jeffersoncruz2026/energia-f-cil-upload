@@ -4,12 +4,14 @@
 //  - Faturas válidas: não excluídas, não canceladas, não substituídas, associadas a
 //    uma UC e com valor total disponível. Documentos de ajuste/complementares
 //    compõem o período ao qual se referem.
-//  - Custo total: soma do VALOR TOTAL das faturas válidas do período (nunca soma
-//    subtotais/componentes junto com o total).
+//  - Custo total (base padrão "custo da energia"): valor total do documento (vNF)
+//    + créditos de geração distribuída abatidos na fatura, ou seja, o custo da
+//    energia ANTES da compensação. Alternativamente, base "valor faturado" (vNF).
+//    Subtotais/componentes nunca são somados junto com o total.
 //  - Consumo total: soma do consumo em kWh das faturas válidas com consumo
 //    disponível.
 //  - Custo médio por UC: custo total ÷ quantidade de UCs com faturas válidas no período.
-//  - Custo médio por kWh: soma do valor total ÷ soma do consumo, considerando
+//  - Custo médio por kWh: soma do custo ÷ soma do consumo, considerando
 //    SOMENTE as faturas com consumo positivo (mesmo conjunto no numerador e no
 //    denominador).
 //  - Variação percentual: (atual − anterior) ÷ anterior × 100, quando anterior ≠ 0.
@@ -71,6 +73,7 @@ export interface Filtros {
   cnpjs: string[];
   situacao: "todas" | "ativa" | "inativa";
   criterio: CriterioConsolidacao;
+  baseCusto: BaseCusto;
 }
 
 export const FILTROS_VAZIOS: Filtros = {
@@ -83,7 +86,37 @@ export const FILTROS_VAZIOS: Filtros = {
   cnpjs: [],
   situacao: "todas",
   criterio: "competencia",
+  baseCusto: "energia",
 };
+
+/**
+ * Base de custo das análises:
+ *  - "energia": custo da energia ANTES da compensação de créditos de geração
+ *    distribuída = valor faturado + créditos abatidos. Mantém o custo real da
+ *    energia mesmo quando a fatura sai com valor zero ou reduzido pelos créditos.
+ *  - "faturado": valor líquido do documento (vNF), efetivamente cobrado.
+ */
+export type BaseCusto = "energia" | "faturado";
+
+export const ROTULOS_BASE_CUSTO: Record<BaseCusto, string> = {
+  energia: "Custo da energia (antes dos créditos)",
+  faturado: "Valor faturado (líquido)",
+};
+
+/** R$ abatidos na fatura por créditos de energia (valor positivo). */
+export function creditosDaFatura(f: Pick<FaturaAnalise, "valor_compensacao">): number {
+  return f.valor_compensacao != null && f.valor_compensacao < 0 ? -f.valor_compensacao : 0;
+}
+
+/** Custo da fatura conforme a base escolhida (null quando o valor total é indisponível). */
+export function custoDaFatura(
+  f: Pick<FaturaAnalise, "valor_total" | "valor_compensacao">,
+  base: BaseCusto = "energia",
+): number | null {
+  if (f.valor_total == null) return null;
+  if (base === "faturado") return f.valor_total;
+  return Math.round((f.valor_total + creditosDaFatura(f)) * 100) / 100;
+}
 
 export function faturaValida(
   f: Pick<
@@ -138,7 +171,12 @@ export function filtrarFaturas<T extends FaturaAnalise>(
 }
 
 export interface Totais {
+  /** Custo conforme a base escolhida (padrão: custo da energia antes dos créditos). */
   custoTotal: number;
+  /** Valor líquido faturado (vNF). */
+  valorFaturado: number;
+  /** Créditos de energia abatidos nas faturas (R$). */
+  creditos: number;
   consumoTotal: number;
   quantidadeFaturas: number;
   faturasComConsumo: number;
@@ -149,18 +187,23 @@ export interface Totais {
   consumoBaseKwh: number;
 }
 
-export function calcularTotais(faturas: FaturaAnalise[]): Totais {
+export function calcularTotais(faturas: FaturaAnalise[], base: BaseCusto = "energia"): Totais {
   let custoTotal = 0;
+  let valorFaturado = 0;
+  let creditos = 0;
   let consumoTotal = 0;
   let custoBase = 0;
   let consumoBase = 0;
   let comConsumo = 0;
   const ucs = new Set<string>();
   for (const f of faturas) {
-    custoTotal += f.valor_total ?? 0;
+    const custo = custoDaFatura(f, base);
+    custoTotal += custo ?? 0;
+    valorFaturado += f.valor_total ?? 0;
+    creditos += creditosDaFatura(f);
     if (f.consumo_kwh != null) consumoTotal += f.consumo_kwh;
-    if (f.consumo_kwh != null && f.consumo_kwh > 0 && f.valor_total != null) {
-      custoBase += f.valor_total;
+    if (f.consumo_kwh != null && f.consumo_kwh > 0 && custo != null) {
+      custoBase += custo;
       consumoBase += f.consumo_kwh;
       comConsumo++;
     }
@@ -168,6 +211,8 @@ export function calcularTotais(faturas: FaturaAnalise[]): Totais {
   }
   return {
     custoTotal: arred2(custoTotal),
+    valorFaturado: arred2(valorFaturado),
+    creditos: arred2(creditos),
     consumoTotal: arred3(consumoTotal),
     quantidadeFaturas: faturas.length,
     faturasComConsumo: comConsumo,
@@ -222,7 +267,7 @@ export function calcularIndicadores(
 ): Indicadores {
   const ucsPorId = new Map(ucs.map((u) => [u.id, u]));
   const atuais = filtrarFaturas(faturas, ucsPorId, filtros);
-  const totais = calcularTotais(atuais);
+  const totais = calcularTotais(atuais, filtros.baseCusto);
   const intervalo =
     filtros.inicio && filtros.fim ? { inicio: filtros.inicio, fim: filtros.fim } : null;
   let anterior: Totais | null = null;
@@ -230,7 +275,7 @@ export function calcularIndicadores(
   if (intervalo) {
     intervaloAnt = periodoAnterior(intervalo.inicio, intervalo.fim);
     const anteriores = filtrarFaturas(faturas, ucsPorId, filtros, intervaloAnt);
-    anterior = anteriores.length ? calcularTotais(anteriores) : null;
+    anterior = anteriores.length ? calcularTotais(anteriores, filtros.baseCusto) : null;
   }
   const ucsAtivas = ucs.filter((u) => u.situacao === "ativa" && ucAtendeFiltros(u, filtros)).length;
   return {
@@ -249,6 +294,8 @@ export function calcularIndicadores(
 export interface PontoMensal {
   mes: string;
   custo: number;
+  valorFaturado: number;
+  creditos: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -259,6 +306,7 @@ export function serieMensal(
   faturas: FaturaAnalise[],
   criterio: CriterioConsolidacao,
   intervalo?: { inicio: string; fim: string } | null,
+  base: BaseCusto = "energia",
 ): PontoMensal[] {
   const grupos = new Map<string, FaturaAnalise[]>();
   for (const f of faturas) {
@@ -272,10 +320,12 @@ export function serieMensal(
   if (intervalo) meses = intervaloMeses(intervalo.inicio, intervalo.fim);
   else if (meses.length) meses = intervaloMeses(meses[0]!, meses[meses.length - 1]!);
   return meses.map((mes) => {
-    const t = calcularTotais(grupos.get(mes) ?? []);
+    const t = calcularTotais(grupos.get(mes) ?? [], base);
     return {
       mes,
       custo: t.custoTotal,
+      valorFaturado: t.valorFaturado,
+      creditos: t.creditos,
       consumo: t.consumoTotal,
       custoKwh: t.custoKwh,
       faturas: t.quantidadeFaturas,
@@ -288,6 +338,8 @@ export interface Agrupado {
   chave: string;
   rotulo: string;
   custo: number;
+  valorFaturado: number;
+  creditos: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -298,6 +350,7 @@ export function agruparPor(
   faturas: FaturaAnalise[],
   ucsPorId: Map<string, UcAnalise>,
   chave: (uc: UcAnalise) => { chave: string; rotulo: string },
+  base: BaseCusto = "energia",
 ): Agrupado[] {
   const grupos = new Map<string, { rotulo: string; faturas: FaturaAnalise[] }>();
   for (const f of faturas) {
@@ -310,11 +363,13 @@ export function agruparPor(
   }
   return [...grupos.entries()]
     .map(([k, g]) => {
-      const t = calcularTotais(g.faturas);
+      const t = calcularTotais(g.faturas, base);
       return {
         chave: k,
         rotulo: g.rotulo,
         custo: t.custoTotal,
+        valorFaturado: t.valorFaturado,
+        creditos: t.creditos,
         consumo: t.consumoTotal,
         custoKwh: t.custoKwh,
         faturas: t.quantidadeFaturas,

@@ -42,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_XML } from "@/lib/configuracao-backend";
+import { creditosDaFatura, custoDaFatura } from "@/lib/analise/calculos";
 import { useAuth } from "@/lib/auth";
 import { CHAVES, invalidarDados, mensagemErro } from "@/lib/consultas";
 import {
@@ -500,10 +501,10 @@ function DetalheFatura() {
                 }
               />
               <CampoInfo
-                rotulo="Custo por kWh"
+                rotulo="Custo da energia por kWh"
                 valor={
-                  f.consumo_kwh && f.consumo_kwh > 0 && f.valor_total != null
-                    ? `R$ ${formatarNumero(f.valor_total / f.consumo_kwh, 4)}`
+                  f.consumo_kwh && f.consumo_kwh > 0 && custoDaFatura(f) != null
+                    ? `R$ ${formatarNumero(custoDaFatura(f)! / f.consumo_kwh, 4)}`
                     : "—"
                 }
               />
@@ -515,9 +516,21 @@ function DetalheFatura() {
             <CardTitle className="text-base">Valores</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-baseline justify-between border-b pb-3">
-              <span className="text-sm font-medium">Valor total do documento</span>
-              <span className="tabular text-xl font-semibold">{formatarMoeda(f.valor_total)}</span>
+            <div className="space-y-1.5 border-b pb-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium">Custo da energia (antes dos créditos)</span>
+                <span className="tabular text-xl font-semibold">
+                  {formatarMoeda(custoDaFatura(f))}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>(−) Créditos de energia abatidos</span>
+                <span className="tabular">{formatarMoeda(-creditosDaFatura(f))}</span>
+              </div>
+              <div className="flex justify-between text-sm font-medium">
+                <span>Valor faturado (total do documento)</span>
+                <span className="tabular">{formatarMoeda(f.valor_total)}</span>
+              </div>
             </div>
             <dl className="grid gap-1.5 text-sm">
               {valores

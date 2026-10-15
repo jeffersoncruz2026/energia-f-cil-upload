@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BadgeStatusDocumento, BadgeStatusProcessamento } from "@/components/app/comuns";
 import type { Coluna } from "@/components/app/tabela-dados";
 import { supabase } from "@/integrations/supabase/client";
+import { creditosDaFatura, custoDaFatura } from "@/lib/analise/calculos";
 import { buscarTodos } from "@/lib/consulta-paginada";
 import { CHAVES } from "@/lib/consultas";
 import { formatarCnpj } from "@/lib/formatacao";
@@ -114,6 +115,18 @@ export function colunasFatura(): Coluna<FaturaLista>[] {
     { id: "chave", titulo: "Chave de acesso", valor: (f) => f.chave_acesso, oculta: true },
     { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (f) => f.consumo_kwh },
     { id: "dias", titulo: "Dias", tipo: "numero", valor: (f) => f.dias_faturados, oculta: true },
+    {
+      id: "custo",
+      titulo: "Custo da energia",
+      tipo: "moeda",
+      valor: (f) => custoDaFatura(f),
+    },
+    {
+      id: "creditos",
+      titulo: "Créditos abatidos",
+      tipo: "moeda",
+      valor: (f) => creditosDaFatura(f) || null,
+    },
     { id: "valor", titulo: "Valor faturado", tipo: "moeda", valor: (f) => f.valor_total },
     { id: "icms", titulo: "ICMS", tipo: "moeda", valor: (f) => f.valor_icms, oculta: true },
     { id: "pis", titulo: "PIS", tipo: "moeda", valor: (f) => f.valor_pis, oculta: true },

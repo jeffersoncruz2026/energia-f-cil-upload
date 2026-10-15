@@ -26,6 +26,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { listaAreas } from "@/lib/areas";
 import { ROTULOS_PAPEL, useAuth } from "@/lib/auth";
 import { CHAVES, mensagemErro, useConfiguracoes } from "@/lib/consultas";
+import type { BaseCusto } from "@/lib/analise/calculos";
 import type { ConfigAlertas, ConfigCadastroUc, CriterioConsolidacao, Papel } from "@/lib/tipos";
 import { recalcularAlertas } from "@/backend/faturas.functions";
 
@@ -269,15 +270,18 @@ function ConfigCadastro() {
   const { data, isLoading } = useConfiguracoes();
   const { pode } = useAuth();
   const qc = useQueryClient();
+  const recalcular = useServerFn(recalcularAlertas);
   const [cad, setCad] = useState<ConfigCadastroUc | null>(null);
   const [textoAreas, setTextoAreas] = useState("");
   const [criterio, setCriterio] = useState<CriterioConsolidacao>("competencia");
+  const [baseCusto, setBaseCusto] = useState<BaseCusto>("energia");
   const [salvando, setSalvando] = useState(false);
   useEffect(() => {
     if (data) {
       setCad(data.cadastro);
       setTextoAreas(data.cadastro.areas.join(", "));
       setCriterio(data.criterio);
+      setBaseCusto(data.baseCusto);
     }
   }, [data]);
   if (isLoading || !cad) return <Carregando />;
@@ -290,7 +294,11 @@ function ConfigCadastro() {
         [],
       );
       await salvarConfig("cadastro_uc", { ...cad, areas });
-      await salvarConfig("consolidacao", { criterio_padrao: criterio });
+      await salvarConfig("consolidacao", {
+        criterio_padrao: criterio,
+        base_custo_padrao: baseCusto,
+      });
+      await recalcular().catch(() => undefined);
       await qc.invalidateQueries({ queryKey: CHAVES.config });
       toast.success("Configurações salvas.");
     } catch (e) {
@@ -361,6 +369,26 @@ function ConfigCadastro() {
           </Select>
           <p className="text-xs text-muted-foreground">
             Pode ser alterado pontualmente nos filtros do dashboard e relatórios.
+          </p>
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <Label>Base de custo padrão das análises</Label>
+          <Select
+            value={baseCusto}
+            disabled={!editavel}
+            onValueChange={(x) => setBaseCusto(x as BaseCusto)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="energia">Custo da energia (antes dos créditos)</SelectItem>
+              <SelectItem value="faturado">Valor faturado (líquido)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Custo da energia = valor faturado + créditos de geração distribuída abatidos na fatura.
+            Usado em indicadores, gráficos, relatórios e alertas de custo.
           </p>
         </div>
         {editavel && (

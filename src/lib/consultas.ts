@@ -4,7 +4,7 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
 
-import type { FaturaAnalise } from "./analise/calculos";
+import type { BaseCusto, FaturaAnalise } from "./analise/calculos";
 import { buscarTodos, CAMPOS_FATURA_ANALISE } from "./consulta-paginada";
 import {
   CONFIG_ALERTAS_PADRAO,
@@ -74,6 +74,7 @@ export interface Configuracoes {
   alertas: ConfigAlertas;
   cadastro: ConfigCadastroUc;
   criterio: CriterioConsolidacao;
+  baseCusto: BaseCusto;
 }
 
 export function useConfiguracoes() {
@@ -90,6 +91,7 @@ export function useConfiguracoes() {
         cadastro: { ...CONFIG_CADASTRO_PADRAO, ...(mapa.get("cadastro_uc") ?? {}) },
         criterio:
           (mapa.get("consolidacao")?.["criterio_padrao"] as CriterioConsolidacao) ?? "competencia",
+        baseCusto: (mapa.get("consolidacao")?.["base_custo_padrao"] as BaseCusto) ?? "energia",
       };
     },
   });
