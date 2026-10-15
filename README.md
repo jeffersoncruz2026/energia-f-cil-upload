@@ -62,7 +62,7 @@ do total do documento, um aviso é registrado — o total do documento (vNF) é 
 ## Regras de cálculo
 
 - **Faturas válidas**: não excluídas, não canceladas, não substituídas, associadas a uma UC e com valor total. Pendentes de identificação não entram nos indicadores.
-- **Custo da energia (base padrão)**: valor total do documento (vNF) **+ créditos de geração distribuída abatidos** na fatura — o custo da energia antes da compensação, inclusive quando a fatura sai zerada. Nos filtros (e em Configurações) é possível trocar para **Valor faturado (líquido)**. Dashboard, faturas, UCs e relatórios mostram lado a lado custo da energia, créditos e valor faturado. Componentes e tributos nunca são somados ao total.
+- **Custo da energia (base padrão)**: fatura **sem valor a pagar** (vNF zerado) → vNF **+ créditos abatidos** (GD e créditos de consumo), o custo da energia antes da compensação; fatura **com valor a pagar** → custo da energia = valor faturado (créditos não somados). Nos filtros (e em Configurações) é possível trocar para **Valor faturado (líquido)**. Dashboard, faturas, UCs e relatórios mostram lado a lado custo da energia, créditos e valor faturado. Componentes e tributos nunca são somados ao total.
 - **Consumo total**: soma do consumo (kWh) das faturas com consumo disponível. O consumo vem dos itens de energia ativa faturada sem somar duas vezes a mesma energia cobrada em TUSD e TE; na ausência, da medição (sem duplicar medições repetidas em vários itens).
 - **Custo médio por UC**: custo total ÷ UCs com faturas válidas no período.
 - **Custo por kWh**: valor total ÷ consumo, apenas faturas com consumo positivo (mesmo conjunto no numerador e no denominador).

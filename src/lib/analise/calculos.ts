@@ -103,9 +103,25 @@ export const ROTULOS_BASE_CUSTO: Record<BaseCusto, string> = {
   faturado: "Valor faturado (líquido)",
 };
 
-/** R$ abatidos na fatura por créditos (GD e créditos de consumo), valor positivo. */
-export function creditosDaFatura(f: Pick<FaturaAnalise, "valor_compensacao">): number {
+/** Fatura sem valor a pagar (valor faturado zerado ou negativo). */
+export function faturaSemValorAPagar(f: Pick<FaturaAnalise, "valor_total">): boolean {
+  return f.valor_total != null && f.valor_total <= 0.005;
+}
+
+/** Créditos (GD e créditos de consumo) informados no documento, valor positivo. */
+export function creditosNoDocumento(f: Pick<FaturaAnalise, "valor_compensacao">): number {
   return f.valor_compensacao != null && f.valor_compensacao < 0 ? -f.valor_compensacao : 0;
+}
+
+/**
+ * Créditos somados ao custo da energia (valor positivo). Regra:
+ * - fatura sem valor a pagar: custo = valor faturado + créditos abatidos;
+ * - fatura com valor a pagar: custo = valor faturado (créditos não são somados).
+ */
+export function creditosDaFatura(
+  f: Pick<FaturaAnalise, "valor_total" | "valor_compensacao">,
+): number {
+  return faturaSemValorAPagar(f) ? creditosNoDocumento(f) : 0;
 }
 
 /** Custo da fatura conforme a base escolhida (null quando o valor total é indisponível). */

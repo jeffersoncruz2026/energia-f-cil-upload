@@ -249,7 +249,8 @@ describe("leitura de NF3e", () => {
     );
     expect(itens[1]!.valor_total).toBe(-100);
     expect(fatura.valor_total).toBe(800);
-    expect(custoDaFatura(fatura)).toBe(900);
+    // fatura com valor a pagar: custo da energia = valor faturado
+    expect(custoDaFatura(fatura)).toBe(800);
   });
 
   it("identifica documento sem protocolo e documento substituto", () => {

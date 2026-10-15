@@ -6,6 +6,7 @@ import {
   calcularIndicadores,
   calcularTotais,
   creditosDaFatura,
+  creditosNoDocumento,
   custoDaFatura,
   FILTROS_VAZIOS,
   serieMensal,
@@ -182,7 +183,26 @@ describe("custo da energia antes dos créditos", () => {
     expect(custoDaFatura({ valor_total: 0, valor_compensacao: -812.5 }, "faturado")).toBe(0);
     expect(custoDaFatura({ valor_total: 300, valor_compensacao: null })).toBe(300);
     expect(custoDaFatura({ valor_total: null, valor_compensacao: -10 })).toBeNull();
-    expect(creditosDaFatura({ valor_compensacao: 50 })).toBe(0);
+    expect(creditosDaFatura({ valor_total: 0, valor_compensacao: 50 })).toBe(0);
+  });
+
+  it("fatura com valor a pagar: custo da energia igual ao valor faturado", () => {
+    const zerada = { valor_total: 0, valor_compensacao: -1358.72 };
+    expect(custoDaFatura(zerada)).toBe(1358.72);
+    expect(creditosDaFatura(zerada)).toBe(1358.72);
+    const aPagar = { valor_total: 500, valor_compensacao: -300 };
+    expect(custoDaFatura(aPagar)).toBe(500);
+    expect(custoDaFatura(aPagar, "faturado")).toBe(500);
+    expect(creditosDaFatura(aPagar)).toBe(0);
+    expect(creditosNoDocumento(aPagar)).toBe(300);
+    const totais = calcularIndicadores(
+      [fatura({ ...zerada, consumo_kwh: 1000 }), fatura({ ...aPagar, consumo_kwh: 500 })],
+      ucs,
+      { ...FILTROS_VAZIOS, inicio: "2026-01", fim: "2026-01" },
+    );
+    expect(totais.custoTotal).toBe(1858.72);
+    expect(totais.valorFaturado).toBe(500);
+    expect(totais.creditos).toBe(1358.72);
   });
 
   it("indicadores, série e agrupamentos usam a base escolhida", () => {
@@ -200,10 +220,11 @@ describe("custo da energia antes dos créditos", () => {
       inicio: "2026-01",
       fim: "2026-01",
     });
-    expect(energia.custoTotal).toBe(2000);
+    // a fatura com valor a pagar (400) não soma os créditos
+    expect(energia.custoTotal).toBe(1400);
     expect(energia.valorFaturado).toBe(400);
-    expect(energia.creditos).toBe(1600);
-    expect(energia.custoKwh).toBeCloseTo(2000 / 2250);
+    expect(energia.creditos).toBe(1000);
+    expect(energia.custoKwh).toBeCloseTo(1400 / 2250);
     const faturado = calcularIndicadores(faturas, ucs, {
       ...FILTROS_VAZIOS,
       inicio: "2026-01",
@@ -212,9 +233,9 @@ describe("custo da energia antes dos créditos", () => {
     });
     expect(faturado.custoTotal).toBe(400);
     expect(serieMensal(faturas, "competencia")[0]).toMatchObject({
-      custo: 2000,
+      custo: 1400,
       valorFaturado: 400,
-      creditos: 1600,
+      creditos: 1000,
     });
   });
 
