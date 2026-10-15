@@ -58,7 +58,7 @@ export type FaturaAnalise = Pick<
 
 export type UcAnalise = Pick<
   UnidadeConsumidora,
-  "id" | "numero_uc" | "fazenda" | "cnpj" | "filial" | "situacao"
+  "id" | "numero_uc" | "fazenda" | "cnpj" | "filial" | "situacao" | "area"
 >;
 
 export interface Filtros {
@@ -67,6 +67,7 @@ export interface Filtros {
   fazendas: string[];
   ucs: string[];
   filiais: string[];
+  areas: string[];
   cnpjs: string[];
   situacao: "todas" | "ativa" | "inativa";
   criterio: CriterioConsolidacao;
@@ -78,6 +79,7 @@ export const FILTROS_VAZIOS: Filtros = {
   fazendas: [],
   ucs: [],
   filiais: [],
+  areas: [],
   cnpjs: [],
   situacao: "todas",
   criterio: "competencia",
@@ -110,6 +112,7 @@ export function ucAtendeFiltros(uc: UcAnalise, filtros: Filtros): boolean {
   if (filtros.fazendas.length && !filtros.fazendas.includes(uc.fazenda)) return false;
   if (filtros.ucs.length && !filtros.ucs.includes(uc.id)) return false;
   if (filtros.filiais.length && !filtros.filiais.includes(uc.filial ?? "")) return false;
+  if (filtros.areas.length && !filtros.areas.includes(uc.area ?? "")) return false;
   if (filtros.cnpjs.length && !filtros.cnpjs.includes(uc.cnpj)) return false;
   return true;
 }

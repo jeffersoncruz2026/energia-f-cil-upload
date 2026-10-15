@@ -62,6 +62,7 @@ const ucs: UcAnalise[] = [
     cnpj: "11222333000181",
     filial: "F1",
     situacao: "ativa",
+    area: "Agrícola",
   },
   {
     id: "uc2",
@@ -70,6 +71,7 @@ const ucs: UcAnalise[] = [
     cnpj: "11444777000161",
     filial: "F1",
     situacao: "ativa",
+    area: "Pecuária",
   },
   {
     id: "uc3",
@@ -78,6 +80,7 @@ const ucs: UcAnalise[] = [
     cnpj: "11444777000161",
     filial: "F2",
     situacao: "inativa",
+    area: null,
   },
 ];
 
@@ -143,6 +146,21 @@ describe("cálculos", () => {
       situacao: "ativa",
     });
     expect(soFazendaB.custoTotal).toBe(200);
+
+    const soAgricola = calcularIndicadores(faturas, ucs, {
+      ...FILTROS_VAZIOS,
+      inicio: "2026-01",
+      fim: "2026-02",
+      areas: ["Agrícola"],
+    });
+    expect(soAgricola.custoTotal).toBe(100);
+    const semArea = calcularIndicadores(faturas, ucs, {
+      ...FILTROS_VAZIOS,
+      inicio: "2026-01",
+      fim: "2026-02",
+      areas: [""],
+    });
+    expect(semArea.custoTotal).toBe(400);
   });
 
   it("consolida por competência ou por emissão", () => {
@@ -296,6 +314,7 @@ describe("alertas", () => {
       cnpj: "11222333000181",
       filial: "F9",
       situacao: "ativa" as const,
+      area: null,
     }));
     const faturas = [
       ...outras.map((u) =>
@@ -307,5 +326,32 @@ describe("alertas", () => {
     const a = alertas.find((x) => x.tipo_alerta === "custo_acima_semelhantes");
     expect(a?.unidade_consumidora_id).toBe("uc1");
     expect(a?.variacao_percentual).toBeCloseTo(100);
+  });
+
+  it("compara UCs semelhantes primeiro dentro da mesma área", () => {
+    const mk = (id: string, area: string) => ({
+      id,
+      numero_uc: id,
+      fazenda: "X",
+      cnpj: "11222333000181",
+      filial: "F9",
+      situacao: "ativa" as const,
+      area,
+    });
+    const pec = ["p1", "p2", "p3", "p4"].map((id) => mk(id, "Pecuária"));
+    const agr = ["a1", "a2", "a3", "a4"].map((id) => mk(id, "Agrícola"));
+    const faturas = [
+      ...pec.map((u) =>
+        fatura({ unidade_consumidora_id: u.id, valor_total: 2000, consumo_kwh: 1000 }),
+      ),
+      ...agr.map((u) =>
+        fatura({ unidade_consumidora_id: u.id, valor_total: 1000, consumo_kwh: 1000 }),
+      ),
+    ];
+    // Pecuária custa mais por kWh que Agrícola, mas está alinhada com a própria área
+    const alertas = gerarAlertas(faturas, [...pec, ...agr], cfg).filter(
+      (a) => a.tipo_alerta === "custo_acima_semelhantes",
+    );
+    expect(alertas).toHaveLength(0);
   });
 });

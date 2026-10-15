@@ -135,7 +135,7 @@ export async function exportarXlsx<T>(
 }
 
 export async function baixarModeloPlanilha(formato: "xlsx" | "csv") {
-  const titulos = ["Numero da UC", "Fazenda", "CNPJ", "Endereço", "Filial"];
+  const titulos = ["Numero da UC", "Fazenda", "CNPJ", "Endereço", "Filial", "Situação", "Área"];
   if (formato === "csv") {
     const csv = Papa.unparse([titulos], { delimiter: ";", newline: "\r\n" });
     baixar(
@@ -150,7 +150,15 @@ export async function baixarModeloPlanilha(formato: "xlsx" | "csv") {
     linhas as never,
     {
       sheet: "Unidades Consumidoras",
-      columns: [{ width: 18 }, { width: 30 }, { width: 22 }, { width: 45 }, { width: 20 }],
+      columns: [
+        { width: 18 },
+        { width: 30 },
+        { width: 22 },
+        { width: 45 },
+        { width: 12 },
+        { width: 12 },
+        { width: 18 },
+      ],
     } as never,
   ).toBlob();
   baixar(blob, "modelo-unidades-consumidoras.xlsx");

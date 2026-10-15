@@ -109,6 +109,7 @@ export function AssociarUc({
                     <div className="truncate text-xs text-muted-foreground">
                       {formatarCnpj(u.cnpj)}
                       {cnpjNorm && cnpjNorm === u.cnpj && " · mesmo CNPJ do XML"}
+                      {u.area && ` · ${u.area}`}
                       {u.filial && ` · ${u.filial}`}
                       {u.situacao === "inativa" && " · inativa"}
                     </div>

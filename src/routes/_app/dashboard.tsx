@@ -102,14 +102,18 @@ function Dashboard() {
       chave: u.filial ?? "—",
       rotulo: u.filial ?? "Sem filial",
     }));
+    const porArea = agruparPor(doPeriodo, ucsPorId, (u) => ({
+      chave: u.area ?? "",
+      rotulo: u.area ?? "Sem área definida",
+    }));
     const porUc = agruparPor(doPeriodo, ucsPorId, (u) => ({
       chave: u.id,
-      rotulo: `UC ${u.numero_uc} · ${u.fazenda}`,
+      rotulo: `UC ${u.numero_uc}`,
     }));
     const comDivergencia = doPeriodo.filter(
       (f) => f.divergencias?.length > 0 || f.status_documento === "sem_protocolo",
     ).length;
-    return { ind, doPeriodo, serie, porFazenda, porFilial, porUc, comDivergencia };
+    return { ind, doPeriodo, serie, porFazenda, porFilial, porArea, porUc, comDivergencia };
   }, [faturas, ucs, ucsPorId, filtros]);
 
   if (faturasQ.error || ucsQ.error) {
@@ -313,6 +317,39 @@ function Dashboard() {
                 rotulo="Custo"
                 formatar={formatarMoeda}
                 mostrarPercentual
+              />
+            </CartaoGrafico>
+            <CartaoGrafico
+              titulo="Custo por área"
+              descricao="Agrícola, pecuária, seringal, administrativo, oficina… Clique para filtrar."
+            >
+              <GraficoBarrasHorizontais
+                dados={analise.porArea.map((g) => ({
+                  chave: g.chave,
+                  rotulo: g.rotulo,
+                  valor: g.custo,
+                  detalhe: `${g.ucs} UC(s) · ${formatarCustoKwh(g.custoKwh)}`,
+                }))}
+                cor={COR_CUSTO}
+                rotulo="Custo"
+                formatar={formatarMoeda}
+                mostrarPercentual
+                aoClicar={(area) => setFiltros({ ...filtros, areas: [area] })}
+              />
+            </CartaoGrafico>
+            <CartaoGrafico titulo="Consumo por área" descricao="Clique para filtrar.">
+              <GraficoBarrasHorizontais
+                dados={analise.porArea.map((g) => ({
+                  chave: g.chave,
+                  rotulo: g.rotulo,
+                  valor: g.consumo,
+                  detalhe: `${g.ucs} UC(s)`,
+                }))}
+                cor={COR_CONSUMO}
+                rotulo="Consumo"
+                formatar={(v) => `${formatarNumero(v)} kWh`}
+                mostrarPercentual
+                aoClicar={(area) => setFiltros({ ...filtros, areas: [area] })}
               />
             </CartaoGrafico>
             <CartaoGrafico titulo="Comparativo de custo entre fazendas">

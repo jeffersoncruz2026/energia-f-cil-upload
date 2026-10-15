@@ -110,22 +110,28 @@ export function BarraFiltros({
     return {
       fazendas: unicos(ucs.map((u) => u.fazenda)).map((f) => ({ valor: f, rotulo: f })),
       filiais: unicos(ucs.map((u) => u.filial)).map((f) => ({ valor: f, rotulo: f })),
+      areas: [
+        ...unicos(ucs.map((u) => u.area)).map((a) => ({ valor: a, rotulo: a })),
+        ...(ucs.some((u) => !u.area) ? [{ valor: "", rotulo: "Sem área definida" }] : []),
+      ],
       cnpjs: unicos(ucs.map((u) => u.cnpj)).map((c) => ({ valor: c, rotulo: formatarCnpj(c) })),
       ucs: ucs
         .filter((u) => !filtros.fazendas.length || filtros.fazendas.includes(u.fazenda))
+        .filter((u) => !filtros.areas.length || filtros.areas.includes(u.area ?? ""))
         .map((u) => ({
           valor: u.id,
           rotulo: `UC ${u.numero_uc}`,
-          detalhe: `${u.fazenda}${u.filial ? ` · ${u.filial}` : ""}`,
+          detalhe: `${u.fazenda}${u.area ? ` · ${u.area}` : ""}${u.filial ? ` · ${u.filial}` : ""}`,
         })),
     };
-  }, [ucs, filtros.fazendas]);
+  }, [ucs, filtros.fazendas, filtros.areas]);
 
   const set = <K extends keyof Filtros>(k: K, v: Filtros[K]) => aoMudar({ ...filtros, [k]: v });
   const ativos =
     filtros.fazendas.length +
     filtros.ucs.length +
     filtros.filiais.length +
+    filtros.areas.length +
     filtros.cnpjs.length +
     (filtros.situacao !== "todas" ? 1 : 0);
 
@@ -176,6 +182,12 @@ export function BarraFiltros({
         valores={filtros.fazendas}
         aoMudar={(v) => set("fazendas", v)}
       />
+      <MultiSelecao
+        rotulo="Área"
+        opcoes={opcoes.areas}
+        valores={filtros.areas}
+        aoMudar={(v) => set("areas", v)}
+      />
       {!ocultar.includes("ucs") && (
         <MultiSelecao
           rotulo="Unidade consumidora"
@@ -222,6 +234,7 @@ export function BarraFiltros({
               fazendas: [],
               ucs: [],
               filiais: [],
+              areas: [],
               cnpjs: [],
               situacao: "todas",
             })

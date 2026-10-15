@@ -328,7 +328,9 @@ export function GraficoBarrasHorizontais({
           }}
           className={aoClicar ? "cursor-pointer" : ""}
           onClick={(d: { payload?: { chave?: string } }) =>
-            d.payload?.chave && d.payload.chave !== "__outros" && aoClicar?.(d.payload.chave)
+            d.payload?.chave != null &&
+            d.payload.chave !== "__outros" &&
+            aoClicar?.(d.payload.chave)
           }
         >
           {itens.map((i) => (

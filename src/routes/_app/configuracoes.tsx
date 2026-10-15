@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { listaAreas } from "@/lib/areas";
 import { ROTULOS_PAPEL, useAuth } from "@/lib/auth";
 import { CHAVES, mensagemErro, useConfiguracoes } from "@/lib/consultas";
 import type { ConfigAlertas, ConfigCadastroUc, CriterioConsolidacao, Papel } from "@/lib/tipos";
@@ -255,11 +256,13 @@ function ConfigCadastro() {
   const { pode } = useAuth();
   const qc = useQueryClient();
   const [cad, setCad] = useState<ConfigCadastroUc | null>(null);
+  const [textoAreas, setTextoAreas] = useState("");
   const [criterio, setCriterio] = useState<CriterioConsolidacao>("competencia");
   const [salvando, setSalvando] = useState(false);
   useEffect(() => {
     if (data) {
       setCad(data.cadastro);
+      setTextoAreas(data.cadastro.areas.join(", "));
       setCriterio(data.criterio);
     }
   }, [data]);
@@ -268,7 +271,11 @@ function ConfigCadastro() {
   const salvar = async () => {
     setSalvando(true);
     try {
-      await salvarConfig("cadastro_uc", cad);
+      const areas = listaAreas(
+        textoAreas.split(/[,;\n]/).map((a) => a.trim().replace(/\s+/g, " ")),
+        [],
+      );
+      await salvarConfig("cadastro_uc", { ...cad, areas });
       await salvarConfig("consolidacao", { criterio_padrao: criterio });
       await qc.invalidateQueries({ queryKey: CHAVES.config });
       toast.success("Configurações salvas.");
@@ -301,6 +308,28 @@ function ConfigCadastro() {
           />
           Endereço obrigatório
         </label>
+        <label className="flex items-center gap-3 text-sm">
+          <Switch
+            checked={cad.area_obrigatoria}
+            disabled={!editavel}
+            onCheckedChange={(x) => setCad({ ...cad, area_obrigatoria: x })}
+          />
+          Área obrigatória
+        </label>
+        <div className="max-w-xl space-y-1.5">
+          <Label htmlFor="areas">Áreas sugeridas no cadastro</Label>
+          <Input
+            id="areas"
+            disabled={!editavel}
+            value={textoAreas}
+            onChange={(e) => setTextoAreas(e.target.value)}
+            placeholder="Agrícola, Pecuária, Seringal, Administrativo, Oficina"
+          />
+          <p className="text-xs text-muted-foreground">
+            Separe por vírgula. Grafias equivalentes (ex.: “agricola” e “Agrícola”) são unificadas
+            automaticamente no cadastro e na importação. Outras áreas também podem ser digitadas.
+          </p>
+        </div>
         <div className="max-w-xs space-y-1.5">
           <Label>Critério padrão de consolidação</Label>
           <Select

@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_app/alertas")({
 });
 
 type AlertaLista = Alerta & {
-  uc: { numero_uc: string; fazenda: string; filial: string | null } | null;
+  uc: { numero_uc: string; fazenda: string; filial: string | null; area: string | null } | null;
 };
 
 const STATUS: Record<StatusAlerta, { rotulo: string; classe: string }> = {
@@ -83,7 +83,7 @@ function PaginaAlertas() {
       buscarTodos<AlertaLista>(
         supabase,
         "alertas",
-        "*, uc:unidades_consumidoras(numero_uc,fazenda,filial)",
+        "*, uc:unidades_consumidoras(numero_uc,fazenda,filial,area)",
         { ativo: true },
       ),
   });
@@ -124,6 +124,7 @@ function PaginaAlertas() {
       celula: (a) => <span className="font-medium">{a.uc?.numero_uc ?? "—"}</span>,
     },
     { id: "fazenda", titulo: "Fazenda", valor: (a) => a.uc?.fazenda },
+    { id: "area", titulo: "Área", valor: (a) => a.uc?.area },
     { id: "filial", titulo: "Filial", valor: (a) => a.uc?.filial, oculta: true },
     {
       id: "tipo",

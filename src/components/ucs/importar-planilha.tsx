@@ -26,6 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { interpretarSituacao } from "@/lib/areas";
 import { useAuth } from "@/lib/auth";
 import { invalidarDados, mensagemErro, useConfiguracoes } from "@/lib/consultas";
 import { formatarCnpj } from "@/lib/formatacao";
@@ -55,7 +56,20 @@ const ROTULO_CAMPO: Record<string, string> = {
   cnpj: "CNPJ",
   endereco: "Endereço",
   filial: "Filial",
+  situacao: "Situação",
+  area: "Área",
 };
+
+const formatarValorCampo = (campo: string, v: string | null) =>
+  v == null || v === ""
+    ? "—"
+    : campo === "cnpj"
+      ? formatarCnpj(v)
+      : campo === "situacao"
+        ? v === "ativa"
+          ? "Ativa"
+          : "Inativa"
+        : v;
 
 export function ImportarPlanilha({
   aberto,
@@ -148,6 +162,8 @@ export function ImportarPlanilha({
       cnpj?: string;
       endereco?: string;
       filial?: string;
+      situacao?: string;
+      area?: string;
       motivo: string;
     }[],
   ) => {
@@ -160,6 +176,8 @@ export function ImportarPlanilha({
         { id: "c", titulo: "CNPJ", valor: (x) => x.cnpj ?? "" },
         { id: "e", titulo: "Endereço", valor: (x) => x.endereco ?? "" },
         { id: "fi", titulo: "Filial", valor: (x) => x.filial ?? "" },
+        { id: "s", titulo: "Situação", valor: (x) => x.situacao ?? "" },
+        { id: "a", titulo: "Área", valor: (x) => x.area ?? "" },
         { id: "m", titulo: "Motivo da rejeição", valor: (x) => x.motivo },
       ],
       linhas,
@@ -407,6 +425,8 @@ function TabelaPrevia({ linhas }: { linhas: LinhaPrevia[] }) {
             <TableHead>Fazenda</TableHead>
             <TableHead>CNPJ</TableHead>
             <TableHead>Filial</TableHead>
+            <TableHead>Área</TableHead>
+            <TableHead>Situação</TableHead>
             <TableHead>Endereço</TableHead>
           </TableRow>
         </TableHeader>
@@ -418,6 +438,10 @@ function TabelaPrevia({ linhas }: { linhas: LinhaPrevia[] }) {
               <TableCell>{l.registro.fazenda}</TableCell>
               <TableCell className="whitespace-nowrap">{formatarCnpj(l.registro.cnpj)}</TableCell>
               <TableCell>{l.registro.filial || "—"}</TableCell>
+              <TableCell>{l.registro.area || "—"}</TableCell>
+              <TableCell>
+                {interpretarSituacao(l.registro.situacao) === "inativa" ? "Inativa" : "Ativa"}
+              </TableCell>
               <TableCell>{l.registro.endereco || "—"}</TableCell>
             </TableRow>
           ))}
@@ -454,11 +478,9 @@ function TabelaAlteracoes({ linhas }: { linhas: LinhaPrevia[] }) {
                 </TableCell>
                 <TableCell>{ROTULO_CAMPO[a.campo] ?? a.campo}</TableCell>
                 <TableCell className="text-muted-foreground line-through">
-                  {a.campo === "cnpj" ? formatarCnpj(a.de) : (a.de ?? "—")}
+                  {formatarValorCampo(a.campo, a.de)}
                 </TableCell>
-                <TableCell className="font-medium">
-                  {a.campo === "cnpj" ? formatarCnpj(a.para) : (a.para ?? "—")}
-                </TableCell>
+                <TableCell className="font-medium">{formatarValorCampo(a.campo, a.para)}</TableCell>
               </TableRow>
             )),
           )}

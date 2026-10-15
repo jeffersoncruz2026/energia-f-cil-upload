@@ -364,7 +364,8 @@ function DetalheUc() {
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {uc.fazenda}
-              {uc.filial && ` · ${uc.filial}`} · {formatarCnpj(uc.cnpj)}
+              {uc.area && ` · ${uc.area}`}
+              {uc.filial && ` · Filial ${uc.filial}`} · {formatarCnpj(uc.cnpj)}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -407,7 +408,8 @@ function DetalheUc() {
           <CampoInfo rotulo="Fazenda" valor={uc.fazenda} />
           <CampoInfo rotulo="CNPJ" valor={formatarCnpj(uc.cnpj)} />
           <CampoInfo rotulo="Filial" valor={uc.filial ?? "—"} />
-          <CampoInfo rotulo="Endereço" valor={uc.endereco ?? "—"} className="lg:col-span-2" />
+          <CampoInfo rotulo="Área" valor={uc.area ?? "—"} />
+          <CampoInfo rotulo="Endereço" valor={uc.endereco ?? "—"} />
           <CampoInfo
             rotulo="Observações"
             valor={uc.observacoes ?? "—"}

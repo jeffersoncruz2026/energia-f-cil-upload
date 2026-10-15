@@ -2,10 +2,12 @@
 // de colunas, validação e prévia das alterações. A validação definitiva é
 // repetida no banco (função importar_ucs) antes de gravar.
 
+import { canonizarArea, interpretarSituacao } from "../areas";
 import { cnpjValido, normalizarCnpj, normalizarUc } from "../documentos";
-import type { ConfigCadastroUc, UnidadeConsumidora } from "../tipos";
+import type { ConfigCadastroUc, SituacaoUc, UnidadeConsumidora } from "../tipos";
 
-export type CampoUc = "numero_uc" | "fazenda" | "cnpj" | "endereco" | "filial";
+export type CampoUc =
+  "numero_uc" | "fazenda" | "cnpj" | "endereco" | "filial" | "situacao" | "area";
 
 export const CAMPOS_PLANILHA: { campo: CampoUc; titulo: string; obrigatorio: boolean }[] = [
   { campo: "numero_uc", titulo: "Numero da UC", obrigatorio: true },
@@ -13,6 +15,8 @@ export const CAMPOS_PLANILHA: { campo: CampoUc; titulo: string; obrigatorio: boo
   { campo: "cnpj", titulo: "CNPJ", obrigatorio: true },
   { campo: "endereco", titulo: "Endereço", obrigatorio: false },
   { campo: "filial", titulo: "Filial", obrigatorio: false },
+  { campo: "situacao", titulo: "Situação", obrigatorio: false },
+  { campo: "area", titulo: "Área", obrigatorio: false },
 ];
 
 const SINONIMOS: Record<CampoUc, string[]> = {
@@ -32,6 +36,8 @@ const SINONIMOS: Record<CampoUc, string[]> = {
   cnpj: ["cnpj", "cnpjdotitular", "cnpjtitular", "cnpjcpf"],
   endereco: ["endereco", "enderecodauc", "localizacao", "logradouro"],
   filial: ["filial", "unidade", "unidadedenegocio", "filialresponsavel"],
+  situacao: ["situacao", "status", "situacaodauc", "ativa", "ativo"],
+  area: ["area", "areadeatuacao", "areadafazenda", "setor", "atividade", "segmento"],
 };
 
 export function normalizarCabecalho(s: string): string {
@@ -58,6 +64,10 @@ export interface RegistroPlanilha {
   cnpj: string;
   endereco: string;
   filial: string;
+  /** Presente somente quando a planilha tem a coluna Situação. */
+  situacao?: string;
+  /** Presente somente quando a planilha tem a coluna Área. */
+  area?: string;
 }
 
 export interface LeituraPlanilha {
@@ -102,7 +112,7 @@ export function interpretarLinhas(linhas: unknown[][]): LeituraPlanilha {
       mapeamento: {},
       colunasIgnoradas: [],
       erros: [
-        "Não foi possível identificar a linha de cabeçalho. Use as colunas: Numero da UC, Fazenda, CNPJ, Endereço e Filial.",
+        "Não foi possível identificar a linha de cabeçalho. Use as colunas: Numero da UC, Fazenda, CNPJ, Endereço, Filial, Situação e Área.",
       ],
     };
   }
@@ -137,6 +147,8 @@ export function interpretarLinhas(linhas: unknown[][]): LeituraPlanilha {
       cnpj: "",
       endereco: "",
       filial: "",
+      ...(usados.has("situacao") ? { situacao: "" } : {}),
+      ...(usados.has("area") ? { area: "" } : {}),
     };
     let vazio = true;
     mapa.forEach((campo, col) => {
@@ -190,6 +202,7 @@ export function gerarPrevia(
   modo: ModoImportacao,
   cfg: ConfigCadastroUc,
 ): Previa {
+  const areasExistentes = existentes.map((u) => u.area);
   const porNumero = new Map(existentes.map((u) => [u.numero_uc_normalizado, u]));
   const vistos = new Set<string>();
   const linhas: LinhaPrevia[] = registros.map((registro) => {
@@ -199,10 +212,17 @@ export function gerarPrevia(
     if (!norm) return rejeitar("Número da UC não informado.");
     if (!registro.fazenda.trim()) return rejeitar("Fazenda não informada.");
     if (!cnpj) return rejeitar("CNPJ não informado.");
+    const situacao = interpretarSituacao(registro.situacao);
+    if (situacao === undefined) {
+      return rejeitar(`Situação inválida (${registro.situacao}). Use Ativa ou Inativa.`);
+    }
     if (!cnpjValido(cnpj)) return rejeitar(`CNPJ inválido (${registro.cnpj}).`);
     if (cfg.filial_obrigatoria && !registro.filial.trim()) return rejeitar("Filial não informada.");
     if (cfg.endereco_obrigatorio && !registro.endereco.trim())
       return rejeitar("Endereço não informado.");
+    const temArea = registro.area !== undefined;
+    const area = canonizarArea(registro.area, cfg.areas, areasExistentes);
+    if (cfg.area_obrigatoria && temArea && !area) return rejeitar("Área não informada.");
     if (vistos.has(norm)) return rejeitar(`UC duplicada na planilha (${registro.numero_uc}).`);
     vistos.add(norm);
 
@@ -220,8 +240,14 @@ export function gerarPrevia(
         cnpj,
         endereco: vazioParaNull(registro.endereco),
         filial: vazioParaNull(registro.filial),
+        // Coluna ausente ou situação em branco mantém o valor atual
+        situacao: (situacao ?? existente.situacao) as SituacaoUc,
+        area: temArea ? area : existente.area,
       };
-      const alteracoes: Alteracao[] = (["fazenda", "cnpj", "endereco", "filial"] as CampoUc[])
+      if (cfg.area_obrigatoria && !novos.area) return rejeitar("Área não informada.");
+      const alteracoes: Alteracao[] = (
+        ["fazenda", "cnpj", "endereco", "filial", "situacao", "area"] as CampoUc[]
+      )
         .filter((c) => (existente[c as keyof UnidadeConsumidora] ?? null) !== novos[c])
         .map((c) => ({
           campo: c,
@@ -234,7 +260,8 @@ export function gerarPrevia(
     }
     if (modo === "atualizar")
       return rejeitar("UC não cadastrada (modo atualização não inclui novas UCs).");
-    return { registro, acao: "incluir" };
+    if (cfg.area_obrigatoria && !area) return rejeitar("Área não informada.");
+    return { registro: { ...registro, ...(temArea ? { area: area ?? "" } : {}) }, acao: "incluir" };
   });
   return {
     linhas,

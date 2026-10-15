@@ -434,25 +434,37 @@ export function gerarAlertas(
     }
   }
 
-  // Custo por kWh acima de UCs semelhantes (mesma filial; se poucas, todas as UCs)
+  // Custo por kWh acima de UCs semelhantes: mesma área (perfis de uso parecidos);
+  // se houver poucas, mesma filial; se ainda poucas, todas as UCs.
   const todosMeses = new Set<string>();
   for (const meses of mesesPorUc.values()) for (const m of meses.keys()) todosMeses.add(m);
   for (const mes of todosMeses) {
-    const pontos: { ucId: string; filial: string | null; custoKwh: number; m: Mes }[] = [];
+    const pontos: {
+      ucId: string;
+      filial: string | null;
+      area: string | null;
+      custoKwh: number;
+      m: Mes;
+    }[] = [];
     for (const [ucId, meses] of mesesPorUc) {
       const m = meses.get(mes);
       if (m && m.consumo && m.consumo > 0) {
         pontos.push({
           ucId,
           filial: ucsPorId.get(ucId)?.filial ?? null,
+          area: ucsPorId.get(ucId)?.area ?? null,
           custoKwh: m.custo / m.consumo,
           m,
         });
       }
     }
     for (const p of pontos) {
-      let grupo = pontos.filter((o) => o.ucId !== p.ucId && o.filial === p.filial);
-      let referencia = "da mesma filial";
+      let grupo = p.area ? pontos.filter((o) => o.ucId !== p.ucId && o.area === p.area) : [];
+      let referencia = `da mesma área (${p.area ?? ""})`;
+      if (grupo.length < 3) {
+        grupo = pontos.filter((o) => o.ucId !== p.ucId && o.filial === p.filial);
+        referencia = "da mesma filial";
+      }
       if (grupo.length < 3) {
         grupo = pontos.filter((o) => o.ucId !== p.ucId);
         referencia = "de todas as UCs";

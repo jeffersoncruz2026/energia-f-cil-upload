@@ -20,6 +20,7 @@ interface ResultadoUc {
   fazenda: string;
   cnpj: string;
   filial: string | null;
+  area: string | null;
 }
 interface ResultadoFatura {
   id: string;
@@ -64,7 +65,12 @@ export function BuscaGlobal() {
     setBuscando(true);
     const digitos = t.replace(/\D/g, "");
     const timer = setTimeout(async () => {
-      const filtrosUc = [`numero_uc.ilike.%${t}%`, `fazenda.ilike.%${t}%`, `filial.ilike.%${t}%`];
+      const filtrosUc = [
+        `numero_uc.ilike.%${t}%`,
+        `fazenda.ilike.%${t}%`,
+        `filial.ilike.%${t}%`,
+        `area.ilike.%${t}%`,
+      ];
       if (digitos.length >= 3)
         filtrosUc.push(`cnpj.ilike.%${digitos}%`, `numero_uc_normalizado.ilike.%${digitos}%`);
       const filtrosFat = [`numero_documento.ilike.%${t}%`, `numero_uc_extraido.ilike.%${t}%`];
@@ -72,7 +78,7 @@ export function BuscaGlobal() {
       const [r1, r2] = await Promise.all([
         supabase
           .from("unidades_consumidoras")
-          .select("id, numero_uc, fazenda, cnpj, filial")
+          .select("id, numero_uc, fazenda, cnpj, filial, area")
           .or(filtrosUc.join(","))
           .limit(8),
         supabase
@@ -141,7 +147,8 @@ export function BuscaGlobal() {
                       UC {u.numero_uc} — {u.fazenda}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {formatarCnpj(u.cnpj)} {u.filial ? `· ${u.filial}` : ""}
+                      {formatarCnpj(u.cnpj)} {u.area ? `· ${u.area}` : ""}{" "}
+                      {u.filial ? `· ${u.filial}` : ""}
                     </div>
                   </div>
                 </CommandItem>
