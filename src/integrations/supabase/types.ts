@@ -576,7 +576,6 @@ export type Database = {
       }
       unidades_consumidoras: {
         Row: {
-          area: string | null
           cnpj: string
           created_at: string
           created_by: string | null
@@ -592,7 +591,6 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          area?: string | null
           cnpj: string
           created_at?: string
           created_by?: string | null
@@ -608,7 +606,6 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          area?: string | null
           cnpj?: string
           created_at?: string
           created_by?: string | null
