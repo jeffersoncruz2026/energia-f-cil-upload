@@ -619,8 +619,9 @@ function DialogoPagamento({
     setSalvando(true);
     const { error } = await supabase.rpc("registrar_pagamento", {
       p_fatura_id: fatura.id,
-      p_data: confirmar ? data : null,
-      p_valor: confirmar ? v : null,
+      // null limpa o pagamento no banco; o tipo gerado não prevê o valor nulo.
+      p_data: (confirmar ? data : null) as unknown as string,
+      p_valor: (confirmar ? v : null) as unknown as number,
     });
     setSalvando(false);
     if (error) {

@@ -131,7 +131,7 @@ export function ImportarPlanilha({
       toast.error(mensagemErro(error, "Falha ao importar a planilha."));
       return;
     }
-    const r = data as ResultadoBanco;
+    const r = data as unknown as ResultadoBanco;
     setResultado(r);
     await invalidarDados(qc);
     toast.success(
