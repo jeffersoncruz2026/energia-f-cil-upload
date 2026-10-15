@@ -42,7 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_XML } from "@/lib/configuracao-backend";
-import { creditosDaFatura, custoDaFatura } from "@/lib/analise/calculos";
+import { creditosDaFatura, creditosNoDocumento, custoDaFatura } from "@/lib/analise/calculos";
 import { useAuth } from "@/lib/auth";
 import { CHAVES, invalidarDados, mensagemErro } from "@/lib/consultas";
 import {
@@ -525,12 +525,20 @@ function DetalheFatura() {
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>(−) Créditos abatidos</span>
-                <span className="tabular">{formatarMoeda(-creditosDaFatura(f))}</span>
+                <span className="tabular">
+                  {formatarMoeda(creditosDaFatura(f) ? -creditosDaFatura(f) : 0)}
+                </span>
               </div>
               <div className="flex justify-between text-sm font-medium">
                 <span>Valor faturado (total do documento)</span>
                 <span className="tabular">{formatarMoeda(f.valor_total)}</span>
               </div>
+              {creditosNoDocumento(f) > 0 && creditosDaFatura(f) === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Créditos no documento ({formatarMoeda(creditosNoDocumento(f))}) não somados ao
+                  custo: fatura com valor a pagar, custo da energia = valor faturado.
+                </p>
+              )}
             </div>
             <dl className="grid gap-1.5 text-sm">
               {valores
