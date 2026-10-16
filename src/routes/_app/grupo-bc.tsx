@@ -14,13 +14,20 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import {
   FATOR_GRUPO_BC,
+  classificarUsina,
   geradorasEncontradas,
+  type MotivoUsina,
   normalizarNumeroUc,
   ROTULOS_SITUACAO_GRUPO_BC,
   type ResultadoGrupoBc,
 } from "@/lib/analise/grupo-bc";
 import { useAuth } from "@/lib/auth";
-import { buscarInjecoesScee, buscarTodos, comGrupoBc } from "@/lib/consulta-paginada";
+import {
+  buscarInjecoesScee,
+  buscarRegraGrupoBc,
+  buscarTodos,
+  comGrupoBc,
+} from "@/lib/consulta-paginada";
 import { CHAVES, invalidarDados, mensagemErro, useUcs } from "@/lib/consultas";
 import { formatarKwh, formatarMoeda, formatarNumero } from "@/lib/formatacao";
 import type { UnidadeConsumidora } from "@/lib/tipos";
@@ -44,6 +51,11 @@ interface LinhaUsina {
   numero: string;
   numeroOriginal: string;
   grupoBc: boolean;
+  /** Classificação automática (true = terceiro, Grupo BC). */
+  automatico: boolean;
+  motivo: MotivoUsina;
+  /** UC cadastrada correspondente (energia própria). */
+  ucPropria: UnidadeConsumidora | undefined;
   kwhInjetados: number;
   faturas: number;
   ucsRecebem: string[];
@@ -51,31 +63,44 @@ interface LinhaUsina {
 
 const CHAVE_CONFIG = "grupo_bc";
 
-/** Cadastro: lista de números das usinas (como digitados / como aparecem na fatura). */
-async function lerCadastro(): Promise<string[]> {
+interface Excecoes {
+  incluir: string[];
+  excluir: string[];
+}
+
+/** Exceções manuais (o formato anterior "geradoras" conta como incluir). */
+async function lerExcecoes(): Promise<Excecoes> {
   const { data, error } = await supabase
     .from("configuracoes")
     .select("valor")
     .eq("chave", CHAVE_CONFIG)
     .maybeSingle();
   if (error) throw error;
-  const lista = (data?.valor as { geradoras?: unknown } | null)?.geradoras;
-  return Array.isArray(lista) ? lista.map(String) : [];
+  const v = (data?.valor ?? {}) as Record<string, unknown>;
+  const lista = (k: string) => (Array.isArray(v[k]) ? (v[k] as unknown[]).map(String) : []);
+  return { incluir: [...lista("geradoras"), ...lista("incluir")], excluir: lista("excluir") };
 }
 
-async function salvarCadastro(geradoras: string[]) {
+async function salvarExcecoes(e: Excecoes) {
   const { data, error } = await supabase
     .from("configuracoes")
-    .update({ valor: { geradoras } })
+    .update({ valor: { incluir: e.incluir, excluir: e.excluir } })
     .eq("chave", CHAVE_CONFIG)
     .select("chave");
   if (error) throw error;
   if (!data?.length) {
     throw new Error(
-      "Cadastro do Grupo BC ainda não disponível no banco. Aplique a migração mais recente.",
+      "Exceções do Grupo BC ainda não disponíveis no banco. Aplique a migração mais recente.",
     );
   }
 }
+
+const ROTULOS_MOTIVO: Record<MotivoUsina, string> = {
+  terceiro: "Terceiro → Grupo BC (automático)",
+  propria: "UC própria → fora do Grupo BC",
+  incluida_manual: "Incluída manualmente",
+  excluida_manual: "Excluída manualmente",
+};
 
 function PaginaGrupoBc() {
   const { pode } = useAuth();
@@ -87,7 +112,7 @@ function PaginaGrupoBc() {
   const dados = useQuery({
     queryKey: [...CHAVES.faturas, "grupo-bc"],
     queryFn: async () => {
-      const [faturas, injecoes, cadastro] = await Promise.all([
+      const [faturas, injecoes, regra] = await Promise.all([
         buscarTodos<FaturaBc>(
           supabase,
           "faturas",
@@ -95,13 +120,13 @@ function PaginaGrupoBc() {
           { excluida: false },
         ),
         buscarInjecoesScee(supabase),
-        lerCadastro(),
+        buscarRegraGrupoBc(supabase),
       ]);
       const ids = new Set(faturas.map((f) => f.id));
       const { resultados } = await comGrupoBc(supabase, faturas);
       return {
         faturas,
-        cadastro,
+        regra,
         encontradas: geradorasEncontradas(injecoes.filter((i) => ids.has(i.fatura_id))),
         calculo: faturas
           .filter((f) => resultados.has(f.id))
@@ -111,42 +136,49 @@ function PaginaGrupoBc() {
   });
 
   const ucsPorId = useMemo(() => new Map((ucsQ.data ?? []).map((u) => [u.id, u])), [ucsQ.data]);
-  const cadastro = useMemo(() => dados.data?.cadastro ?? [], [dados.data]);
-  const cadastroNorm = useMemo(() => new Set(cadastro.map(normalizarNumeroUc)), [cadastro]);
-
   const usinas: LinhaUsina[] = useMemo(() => {
+    const regra = dados.data?.regra;
+    if (!regra) return [];
+    const ucPorNumero = new Map((ucsQ.data ?? []).map((u) => [normalizarNumeroUc(u.numero_uc), u]));
     const ucDaFatura = new Map(
       (dados.data?.faturas ?? []).map((f) => [
         f.id,
         f.unidade_consumidora_id ? ucsPorId.get(f.unidade_consumidora_id)?.numero_uc : undefined,
       ]),
     );
-    const linhas: LinhaUsina[] = (dados.data?.encontradas ?? []).map((g) => ({
-      numero: g.numero,
-      numeroOriginal: g.numeroOriginal,
-      grupoBc: cadastroNorm.has(g.numero),
-      kwhInjetados: g.kwhInjetados,
-      faturas: g.faturas,
-      ucsRecebem: [
-        ...new Set(g.faturaIds.map((id) => ucDaFatura.get(id)).filter((u): u is string => !!u)),
-      ],
-    }));
-    // Usinas cadastradas que ainda não aparecem em nenhuma fatura importada
-    for (const c of cadastro) {
-      const n = normalizarNumeroUc(c);
-      if (n && !linhas.some((l) => l.numero === n)) {
-        linhas.push({
-          numero: n,
-          numeroOriginal: c,
-          grupoBc: true,
-          kwhInjetados: 0,
-          faturas: 0,
-          ucsRecebem: [],
-        });
+    const linha = (
+      numero: string,
+      numeroOriginal: string,
+      extra: Pick<LinhaUsina, "kwhInjetados" | "faturas" | "ucsRecebem">,
+    ): LinhaUsina => {
+      const c = classificarUsina(numero, regra);
+      return {
+        numero,
+        numeroOriginal,
+        grupoBc: c.grupoBc,
+        automatico: c.automatico,
+        motivo: c.motivo,
+        ucPropria: ucPorNumero.get(numero),
+        ...extra,
+      };
+    };
+    const linhas = (dados.data?.encontradas ?? []).map((g) =>
+      linha(g.numero, g.numeroOriginal, {
+        kwhInjetados: g.kwhInjetados,
+        faturas: g.faturas,
+        ucsRecebem: [
+          ...new Set(g.faturaIds.map((id) => ucDaFatura.get(id)).filter((u): u is string => !!u)),
+        ],
+      }),
+    );
+    // Usinas incluídas manualmente que ainda não aparecem em faturas importadas
+    for (const n of regra.incluir) {
+      if (!linhas.some((l) => l.numero === n)) {
+        linhas.push(linha(n, n, { kwhInjetados: 0, faturas: 0, ucsRecebem: [] }));
       }
     }
     return linhas;
-  }, [dados.data, cadastro, cadastroNorm, ucsPorId]);
+  }, [dados.data, ucsQ.data, ucsPorId]);
 
   const linhasCalculo: LinhaCalculo[] = useMemo(
     () =>
@@ -157,7 +189,11 @@ function PaginaGrupoBc() {
     [dados.data, ucsPorId],
   );
 
-  const alterarCadastro = async (numeroOriginal: string, incluir: boolean) => {
+  /**
+   * Define se a usina entra no Grupo BC. Só grava exceção quando difere do
+   * automático; voltar ao automático remove a exceção.
+   */
+  const alterarUsina = async (numeroOriginal: string, grupoBc: boolean, automatico: boolean) => {
     const n = normalizarNumeroUc(numeroOriginal);
     if (!n) {
       toast.error("Informe o número da UC geradora (somente dígitos).");
@@ -165,18 +201,21 @@ function PaginaGrupoBc() {
     }
     setSalvando(n);
     try {
-      const atual = await lerCadastro();
-      const semEla = atual.filter((g) => normalizarNumeroUc(g) !== n);
-      await salvarCadastro(incluir ? [...semEla, numeroOriginal.trim()] : semEla);
+      const atual = await lerExcecoes();
+      const sem = (l: string[]) => l.filter((g) => normalizarNumeroUc(g) !== n);
+      const novo: Excecoes = { incluir: sem(atual.incluir), excluir: sem(atual.excluir) };
+      if (grupoBc !== automatico)
+        (grupoBc ? novo.incluir : novo.excluir).push(numeroOriginal.trim());
+      await salvarExcecoes(novo);
       toast.success(
-        incluir
+        grupoBc
           ? `Usina ${numeroOriginal} incluída no Grupo BC.`
-          : `Usina ${numeroOriginal} removida do Grupo BC.`,
+          : `Usina ${numeroOriginal} fora do Grupo BC.`,
       );
       setNova("");
       await invalidarDados(qc);
     } catch (e) {
-      toast.error(mensagemErro(e, "Não foi possível atualizar o cadastro do Grupo BC."));
+      toast.error(mensagemErro(e, "Não foi possível atualizar o Grupo BC."));
     } finally {
       setSalvando(null);
     }
@@ -193,7 +232,7 @@ function PaginaGrupoBc() {
         <Switch
           checked={u.grupoBc}
           disabled={!podeEditar || salvando === u.numero}
-          onCheckedChange={(v) => void alterarCadastro(u.numeroOriginal, v)}
+          onCheckedChange={(v) => void alterarUsina(u.numeroOriginal, v, u.automatico)}
           aria-label={`Grupo BC — usina ${u.numeroOriginal}`}
         />
       ),
@@ -203,6 +242,30 @@ function PaginaGrupoBc() {
       titulo: "UC geradora (usina)",
       valor: (u) => u.numeroOriginal,
       celula: (u) => <span className="font-medium">{u.numeroOriginal}</span>,
+    },
+    {
+      id: "classificacao",
+      titulo: "Classificação",
+      valor: (u) => ROTULOS_MOTIVO[u.motivo],
+      celula: (u) => (
+        <div className="flex flex-col">
+          <Badge
+            variant="outline"
+            className={
+              u.grupoBc
+                ? "w-fit border-success/30 bg-success/10 text-success"
+                : "w-fit text-muted-foreground"
+            }
+          >
+            {ROTULOS_MOTIVO[u.motivo]}
+          </Badge>
+          {u.ucPropria && (
+            <span className="mt-0.5 text-xs text-muted-foreground">
+              UC cadastrada: {u.ucPropria.fazenda}
+            </span>
+          )}
+        </div>
+      ),
     },
     { id: "kwh", titulo: "kWh injetados (total)", tipo: "kwh", valor: (u) => u.kwhInjetados },
     { id: "faturas", titulo: "Faturas", tipo: "numero", valor: (u) => u.faturas },
@@ -288,9 +351,10 @@ function PaginaGrupoBc() {
         titulo="Grupo BC"
         descricao={
           <>
-            Energia injetada por terceiros: cadastre as usinas (UCs geradoras) do Grupo BC. Em cada
-            fatura entram só as linhas “INJEÇÃO SCEE – UC &lt;usina do Grupo BC&gt;”. Valor Grupo BC
-            = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO (com tributos) ×{" "}
+            Energia injetada por terceiros. Automático: em cada fatura entram as linhas “INJEÇÃO
+            SCEE – UC &lt;geradora&gt;” cuja geradora não é UC cadastrada no sistema (usina de
+            terceiro); injeções de UCs cadastradas (energia própria) ficam de fora. Valor Grupo BC =
+            kWh injetados × tarifa do CONSUMO NÃO COMPENSADO (com tributos) ×{" "}
             {formatarNumero(FATOR_GRUPO_BC, 2)}. Desconto = kWh injetados × (tarifa do CONSUMO NÃO
             COMPENSADO + tarifa ADC BANDEIRA) − Valor Grupo BC. Custo cheio = Valor + Desconto — é o
             valor somado ao custo da energia.
@@ -305,7 +369,7 @@ function PaginaGrupoBc() {
         <>
           <CartaoGrafico
             titulo="Usinas (UCs geradoras) encontradas nas faturas"
-            descricao="Ative a chave nas usinas que pertencem ao Grupo BC. Injeções de outras geradoras (ex.: outra UC da própria fazenda) não entram no cálculo. Vale para todas as faturas, inclusive as já importadas."
+            descricao="Classificação automática: usina que não é UC cadastrada = terceiro (Grupo BC); UC cadastrada = energia própria. Use a chave só para exceções. Vale para todas as faturas, inclusive as já importadas."
           >
             <TabelaDados
               dados={usinas}
@@ -320,7 +384,7 @@ function PaginaGrupoBc() {
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
                       e.preventDefault();
-                      void alterarCadastro(nova, true);
+                      void alterarUsina(nova, true, false);
                     }}
                   >
                     <Input

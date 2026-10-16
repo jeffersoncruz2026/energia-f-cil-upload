@@ -8,6 +8,8 @@ import {
   faturasComInjecaoGrupoBc,
   FILTRO_ITENS_GRUPO_BC,
   normalizarNumeroUc,
+  type RegraGrupoBc,
+  usinasGrupoBc,
   type ItemGrupoBc,
   type ResultadoGrupoBc,
 } from "./analise/grupo-bc";
@@ -95,18 +97,30 @@ export async function buscarItensGd(cliente: SupabaseClient) {
   return resultado;
 }
 
-/** Usinas (UCs geradoras) do Grupo BC, normalizadas (vazio se ainda não houver cadastro). */
-export async function buscarGeradorasGrupoBc(cliente: SupabaseClient): Promise<Set<string>> {
-  const { data, error } = await cliente
-    .from("configuracoes")
-    .select("valor")
-    .eq("chave", "grupo_bc")
-    .maybeSingle();
-  if (error || !data) return new Set();
-  const lista = (data.valor as { geradoras?: unknown } | null)?.geradoras;
+/** Lista de números da configuração grupo_bc (exceções manuais). */
+function listaConfig(valor: unknown, chave: string): Set<string> {
+  const lista = (valor as Record<string, unknown> | null)?.[chave];
   return new Set(
     (Array.isArray(lista) ? lista : []).map((g) => normalizarNumeroUc(String(g))).filter(Boolean),
   );
+}
+
+/**
+ * Regra do Grupo BC: UCs cadastradas (energia própria) e exceções manuais.
+ * Sem a configuração no banco, as exceções ficam vazias e vale só o automático.
+ */
+export async function buscarRegraGrupoBc(cliente: SupabaseClient): Promise<RegraGrupoBc> {
+  const [ucs, cfg] = await Promise.all([
+    buscarTodos<{ numero_uc: string }>(cliente, "unidades_consumidoras", "numero_uc"),
+    cliente.from("configuracoes").select("valor").eq("chave", "grupo_bc").maybeSingle(),
+  ]);
+  const valor = cfg.error ? null : (cfg.data?.valor ?? null);
+  return {
+    proprias: new Set(ucs.map((u) => normalizarNumeroUc(u.numero_uc)).filter(Boolean)),
+    // "geradoras" = formato anterior (usinas cadastradas manualmente) → incluir
+    incluir: new Set([...listaConfig(valor, "geradoras"), ...listaConfig(valor, "incluir")]),
+    excluir: listaConfig(valor, "excluir"),
+  };
 }
 
 /** Linhas "INJEÇÃO SCEE" de todas as faturas (para achar as usinas e as faturas do Grupo BC). */
@@ -155,12 +169,20 @@ export async function buscarItensGrupoBc(
  * cadastrada no Grupo BC) e devolve também o resultado detalhado por fatura.
  */
 export async function comGrupoBc<T extends { id: string }>(cliente: SupabaseClient, faturas: T[]) {
-  const geradoras = await buscarGeradorasGrupoBc(cliente);
-  if (!geradoras.size || !faturas.length) {
-    return { faturas: aplicarGrupoBc(faturas, new Map()), geradoras, resultados: new Map() };
+  if (!faturas.length) {
+    return {
+      faturas: aplicarGrupoBc(faturas, new Map()),
+      geradoras: new Set<string>(),
+      resultados: new Map(),
+    };
   }
   const ids = new Set(faturas.map((f) => f.id));
-  const injecoes = (await buscarInjecoesScee(cliente)).filter((i) => ids.has(i.fatura_id));
+  const [todas, regra] = await Promise.all([
+    buscarInjecoesScee(cliente),
+    buscarRegraGrupoBc(cliente),
+  ]);
+  const injecoes = todas.filter((i) => ids.has(i.fatura_id));
+  const geradoras = usinasGrupoBc(injecoes, regra);
   const faturasBc = faturasComInjecaoGrupoBc(injecoes, geradoras);
   const resultados: Map<string, ResultadoGrupoBc> = faturasBc.length
     ? calcularGrupoBcPorFatura(await buscarItensGrupoBc(cliente, faturasBc), geradoras)

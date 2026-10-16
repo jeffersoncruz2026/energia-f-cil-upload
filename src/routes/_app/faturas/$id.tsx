@@ -43,8 +43,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_XML } from "@/lib/configuracao-backend";
 import { creditosDaFatura, creditosNoDocumento, custoDaFatura } from "@/lib/analise/calculos";
-import { calcularGrupoBcPorFatura } from "@/lib/analise/grupo-bc";
-import { buscarGeradorasGrupoBc } from "@/lib/consulta-paginada";
+import { calcularGrupoBcPorFatura, usinasGrupoBc } from "@/lib/analise/grupo-bc";
+import { buscarRegraGrupoBc } from "@/lib/consulta-paginada";
 import { useAuth } from "@/lib/auth";
 import { CHAVES, invalidarDados, mensagemErro } from "@/lib/consultas";
 import {
@@ -104,13 +104,11 @@ function DetalheFatura() {
       if (i.error) throw i.error;
       const fatura = f.data as FaturaDetalhe | null;
       const itens = (i.data ?? []) as ItemFatura[];
-      // Grupo BC: calculado quando a fatura tem injeção de usina cadastrada no grupo.
-      const geradoras = await buscarGeradorasGrupoBc(supabase);
+      // Grupo BC: injeção de usina de terceiro (geradora que não é UC cadastrada).
+      const regra = await buscarRegraGrupoBc(supabase);
+      const itensBc = itens.map((it) => ({ ...it, fatura_id: id }));
       const grupoBc =
-        calcularGrupoBcPorFatura(
-          itens.map((it) => ({ ...it, fatura_id: id })),
-          geradoras,
-        ).get(id) ?? null;
+        calcularGrupoBcPorFatura(itensBc, usinasGrupoBc(itensBc, regra)).get(id) ?? null;
       return {
         fatura: fatura
           ? {
