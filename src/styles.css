@@ -159,6 +159,12 @@
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .tabular {
@@ -190,5 +196,13 @@
   }
   body:has(.danf3e) {
     background: white;
+  }
+  /* desfaz a redução de tela (celular): transform quebraria o position: fixed */
+  .danf3e-escala {
+    transform: none !important;
+  }
+  .danf3e-escala-externo {
+    height: auto !important;
+    overflow: visible !important;
   }
 }

@@ -191,7 +191,7 @@ export function ImportarPlanilha({
 
   return (
     <Dialog open={aberto} onOpenChange={(o) => !o && fechar()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Importar planilha de unidades consumidoras</DialogTitle>
           <DialogDescription>

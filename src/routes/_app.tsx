@@ -19,7 +19,7 @@ function AreaAutenticada() {
   if (!backendConfigurado) return <ConfiguracaoPendente />;
   if (carregando) {
     return (
-      <div className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">
+      <div className="flex min-h-dvh items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
       </div>
     );
@@ -29,7 +29,7 @@ function AreaAutenticada() {
   if (!ehAmbienteEdicao() && rotaSoEdicao(caminho)) return <Navigate to="/dashboard" />;
   if (!papel) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 text-center text-sm text-muted-foreground">
+      <div className="flex min-h-dvh items-center justify-center px-4 text-center text-sm text-muted-foreground">
         Seu usuário ainda não possui perfil de acesso. Solicite a liberação a um administrador.
       </div>
     );

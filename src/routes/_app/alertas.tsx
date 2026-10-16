@@ -167,7 +167,8 @@ function PaginaAlertas() {
       id: "descricao",
       titulo: "Motivo",
       valor: (a) => a.descricao,
-      classe: "min-w-[320px] max-w-md whitespace-normal text-xs text-muted-foreground",
+      classe:
+        "min-w-[220px] max-w-md whitespace-normal sm:min-w-[320px] text-xs text-muted-foreground",
     },
     {
       id: "status",
@@ -283,7 +284,7 @@ function PaginaAlertas() {
           barraExtra={
             <>
               <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -298,7 +299,7 @@ function PaginaAlertas() {
                 value={classificacao}
                 onValueChange={(v) => setClassificacao(v as typeof classificacao)}
               >
-                <SelectTrigger className="w-44">
+                <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-44">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -308,7 +309,7 @@ function PaginaAlertas() {
                 </SelectContent>
               </Select>
               <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-                <SelectTrigger className="w-56">
+                <SelectTrigger className="w-full sm:w-56">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

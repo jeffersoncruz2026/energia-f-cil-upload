@@ -612,7 +612,7 @@ function PaginaRelatorios() {
               id: "motivo",
               titulo: "Motivo",
               valor: (a) => a.descricao,
-              classe: "min-w-[300px] whitespace-normal text-xs",
+              classe: "min-w-[220px] whitespace-normal text-xs sm:min-w-[300px]",
             },
             { id: "status", titulo: "Status", valor: (a) => a.status },
           ]}

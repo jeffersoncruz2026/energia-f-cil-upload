@@ -18,6 +18,7 @@ import {
 } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatarMoedaCompacta, formatarNumero, rotuloMes } from "@/lib/formatacao";
 
 export const COR_CUSTO = "var(--chart-1)";
@@ -41,8 +42,8 @@ export function CartaoGrafico({
 }) {
   return (
     <Card className={className}>
-      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 p-4 pb-2">
-        <div>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 p-4 pb-2">
+        <div className="min-w-0">
           <CardTitle className="text-sm font-semibold">{titulo}</CardTitle>
           {descricao && <CardDescription className="mt-1 text-xs">{descricao}</CardDescription>}
         </div>
@@ -263,6 +264,8 @@ export function GraficoBarrasHorizontais({
   mostrarPercentual?: boolean;
   limite?: number;
 }) {
+  const celular = useIsMobile();
+  const maxRotulo = celular ? 14 : 22;
   const ordenados = [...dados].filter((d) => d.valor !== 0).sort((a, b) => b.valor - a.valor);
   let itens = ordenados.slice(0, limite);
   if (ordenados.length > limite) {
@@ -287,11 +290,13 @@ export function GraficoBarrasHorizontais({
         <YAxis
           type="category"
           dataKey="rotulo"
-          width={150}
+          width={celular ? 96 : 150}
           tick={{ ...eixo, fill: "var(--foreground)" }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v: string) => (v.length > 22 ? `${v.slice(0, 21)}…` : v)}
+          tickFormatter={(v: string) =>
+            v.length > maxRotulo ? `${v.slice(0, maxRotulo - 1)}…` : v
+          }
         />
         <Tooltip
           cursor={{ fill: "var(--muted)", opacity: 0.6 }}

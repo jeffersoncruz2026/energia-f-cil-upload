@@ -76,7 +76,7 @@ function Login() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-dvh lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
         <div className="space-y-6">
           <div className="w-fit rounded-xl bg-white px-5 py-4 shadow-sm">
@@ -100,7 +100,7 @@ function Login() {
         </div>
         <p className="text-xs opacity-50">Acesso restrito a usuários autorizados.</p>
       </div>
-      <div className="flex items-center justify-center bg-background p-6">
+      <div className="flex items-center justify-center bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] sm:p-6">
         <div className="w-full max-w-sm">
           <div className="mb-6 space-y-3 lg:hidden">
             <img src="/logo-grupo-lage.png" alt="Grupo Otávio Lage" className="h-12 w-auto" />

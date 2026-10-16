@@ -203,7 +203,7 @@ function Dashboard() {
           <BarraFiltros filtros={filtros} aoMudar={setFiltros} ucs={ucs} />
 
           <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
               <CartaoIndicador
                 titulo={
                   filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado total"
@@ -259,7 +259,7 @@ function Dashboard() {
                 ajuda="Custo total ÷ UCs com faturas válidas no período."
               />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <CartaoIndicador
                 titulo="Variação do custo"
                 icone={TrendingUp}
@@ -584,7 +584,7 @@ function DetalheMes({
   ];
   return (
     <Dialog open={!!mes} onOpenChange={(o) => !o && aoFechar()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Faturas de {mes ? rotuloMes(mes) : ""}</DialogTitle>
           <DialogDescription>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { FileDown } from "lucide-react";
 import { useMemo } from "react";
 
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/_app/download-fatura/")({
 });
 
 function PaginaDownloadFatura() {
+  const navigate = useNavigate();
   const { data, isLoading, error } = useFaturasLista();
   const faturas = useMemo(
     () =>
@@ -85,6 +86,7 @@ function PaginaDownloadFatura() {
           nomeExportacao="faturas-download"
           placeholderBusca="Buscar UC, fazenda, nº do documento…"
           ordenacaoInicial={{ id: "competencia", direcao: "desc" }}
+          aoClicarLinha={(f) => navigate({ to: "/download-fatura/$id", params: { id: f.id } })}
         />
       )}
     </div>

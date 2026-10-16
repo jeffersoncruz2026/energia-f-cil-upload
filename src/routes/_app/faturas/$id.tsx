@@ -605,7 +605,7 @@ function DetalheFatura() {
                   </div>
                 ))}
             </dl>
-            <div className="grid grid-cols-3 gap-2 border-t pt-3 text-sm">
+            <div className="grid grid-cols-2 gap-2 border-t pt-3 text-sm sm:grid-cols-3">
               <CampoInfo rotulo="ICMS" valor={formatarMoeda(f.valor_icms)} />
               <CampoInfo rotulo="PIS" valor={formatarMoeda(f.valor_pis)} />
               <CampoInfo rotulo="COFINS" valor={formatarMoeda(f.valor_cofins)} />

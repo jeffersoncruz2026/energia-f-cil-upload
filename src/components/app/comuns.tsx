@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatarPercentual } from "@/lib/formatacao";
 import type { StatusDocumento, StatusProcessamento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,9 @@ export function CabecalhoPagina({
   return (
     <div className="flex flex-col gap-3 pb-6 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{titulo}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          {titulo}
+        </h1>
         {descricao && <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{descricao}</p>}
       </div>
       {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
@@ -55,33 +57,36 @@ export function CartaoIndicador({
   const bom = inverterCores ? positivo : negativo;
   return (
     <Card className="gap-0 py-0 shadow-sm">
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {titulo}
             {ajuda && (
-              <Tooltip>
-                <TooltipTrigger asChild>
+              // Popover (e não Tooltip): abre com toque no celular e clique no desktop
+              <Popover>
+                <PopoverTrigger asChild>
                   <button
                     type="button"
                     aria-label={`Sobre: ${titulo}`}
-                    className="text-muted-foreground/70"
+                    className="-m-1.5 p-1.5 text-muted-foreground/70 hover:text-foreground"
                   >
                     <Info className="h-3.5 w-3.5" />
                   </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">{ajuda}</TooltipContent>
-              </Tooltip>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] p-3 text-xs normal-case tracking-normal">
+                  {ajuda}
+                </PopoverContent>
+              </Popover>
             )}
           </div>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
+          <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary min-[400px]:flex">
             <Icone className="h-4 w-4" />
           </div>
         </div>
         {carregando ? (
           <Skeleton className="mt-2 h-7 w-28" />
         ) : (
-          <div className="tabular mt-1 truncate text-2xl font-semibold text-foreground">
+          <div className="tabular mt-1 truncate text-lg font-semibold text-foreground min-[400px]:text-xl sm:text-2xl">
             {valor}
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, FileDown } from "lucide-react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 import { Carregando, MensagemErro } from "@/components/app/comuns";
 import { Danf3eDocumento } from "@/components/faturas/danf3e";
@@ -61,10 +62,65 @@ function PaginaFaturaPdf() {
       ) : consulta.isLoading || !consulta.data ? (
         <Carregando />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-white p-4 shadow-sm print:border-0 print:p-0 print:shadow-none">
-          <Danf3eDocumento d={consulta.data.danf3e} />
-        </div>
+        <>
+          <p className="text-xs text-muted-foreground sm:hidden print:hidden">
+            No celular, "Baixar PDF" abre a impressão do aparelho: escolha "Salvar como PDF"
+            (Android) ou toque em Compartilhar → Salvar em Arquivos (iPhone).
+          </p>
+          <div className="rounded-lg border bg-white p-2 shadow-sm sm:p-4 print:border-0 print:p-0 print:shadow-none">
+            <AjustarLargura>
+              <Danf3eDocumento d={consulta.data.danf3e} />
+            </AjustarLargura>
+          </div>
+        </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Reduz o documento A4 (194mm) para caber na largura da tela (celular), sem
+ * rolagem lateral. Na impressão a escala é desfeita pelo CSS (.danf3e-escala).
+ */
+function AjustarLargura({ children }: { children: ReactNode }) {
+  const externo = useRef<HTMLDivElement>(null);
+  const interno = useRef<HTMLDivElement>(null);
+  const [ajuste, setAjuste] = useState({ escala: 1, altura: 0 });
+
+  useLayoutEffect(() => {
+    const ext = externo.current;
+    const int = interno.current;
+    if (!ext || !int) return;
+    const medir = () => {
+      const largura = int.scrollWidth;
+      const escala = largura > 0 ? Math.min(1, ext.clientWidth / largura) : 1;
+      setAjuste({ escala, altura: int.offsetHeight * escala });
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(ext);
+    obs.observe(int);
+    return () => obs.disconnect();
+  }, []);
+
+  const reduzido = ajuste.escala < 1;
+  return (
+    <div
+      ref={externo}
+      className="danf3e-escala-externo overflow-hidden"
+      style={reduzido ? { height: ajuste.altura } : undefined}
+    >
+      <div
+        ref={interno}
+        className="danf3e-escala w-max"
+        style={
+          reduzido
+            ? { transform: `scale(${ajuste.escala})`, transformOrigin: "top left" }
+            : { marginInline: "auto" }
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }

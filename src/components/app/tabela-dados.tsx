@@ -227,7 +227,7 @@ export function TabelaDados<T>({
           )}
           {barraExtra}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -378,7 +378,7 @@ export function TabelaDados<T>({
           {ordenados.length} registro(s){termo && ` (de ${dados.length})`}
         </span>
         {totalPaginas > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
             <Button
               variant="outline"
               size="sm"
