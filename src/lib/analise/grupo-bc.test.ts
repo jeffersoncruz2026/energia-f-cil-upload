@@ -275,10 +275,23 @@ describe("Grupo BC", () => {
       });
     });
 
-    it("exceções novas (incluir/excluir) continuam valendo", () => {
+    it("UC própria em 'incluir' (exceção antiga) continua fora do Grupo BC", () => {
       const regra = regraGrupoBc(ucs, { incluir: ["000128066501220"], excluir: [] });
-      expect(classificarUsina("000128066501220", regra).motivo).toBe("incluida_manual");
+      expect(classificarUsina("000128066501220", regra)).toMatchObject({
+        grupoBc: false,
+        motivo: "propria",
+      });
+      expect([...usinasGrupoBc(itensReais, regra)]).toEqual(["405731001244"]);
       expect(regraGrupoBc(ucs, null).incluir.size).toBe(0);
+    });
+
+    it("exceções incluir/excluir continuam valendo para usinas de terceiros", () => {
+      const regra = regraGrupoBc(ucs, { incluir: ["000999000101"], excluir: ["000405731001244"] });
+      expect(classificarUsina("000999000101", regra).motivo).toBe("incluida_manual");
+      expect(classificarUsina("000405731001244", regra)).toMatchObject({
+        grupoBc: false,
+        motivo: "excluida_manual",
+      });
     });
   });
 });
