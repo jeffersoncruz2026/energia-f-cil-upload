@@ -151,7 +151,16 @@ function PaginaGrupoBc() {
       celula: (l) => (l.tarifa != null ? formatarNumero(l.tarifa, 6) : "—"),
       alinhar: "direita",
     },
+    {
+      id: "tarifaBandeira",
+      titulo: "Tarifa ADC bandeira (R$/kWh)",
+      valor: (l) => l.tarifaBandeira,
+      celula: (l) => formatarNumero(l.tarifaBandeira, 6),
+      alinhar: "direita",
+    },
     { id: "valor", titulo: "Valor Grupo BC", tipo: "moeda", valor: (l) => l.valor },
+    { id: "desconto", titulo: "Desconto", tipo: "moeda", valor: (l) => l.desconto },
+    { id: "custoCheio", titulo: "Custo cheio", tipo: "moeda", valor: (l) => l.custoCheio },
     {
       id: "situacao",
       titulo: "Situação",
@@ -174,7 +183,8 @@ function PaginaGrupoBc() {
   ];
 
   const erro = ucsQ.error ?? calculo.error;
-  const totalBc = linhas.reduce((s, l) => s + (l.valor ?? 0), 0);
+  const soma = (c: "valor" | "desconto" | "custoCheio") =>
+    linhas.reduce((s, l) => s + (l[c] ?? 0), 0);
 
   return (
     <div className="space-y-5">
@@ -184,8 +194,10 @@ function PaginaGrupoBc() {
           <>
             UCs que recebem energia injetada por terceiros. Valor Grupo BC = kWh injetados (INJEÇÃO
             SCEE) × tarifa do CONSUMO NÃO COMPENSADO (preço unitário com tributos) ×{" "}
-            {formatarNumero(FATOR_GRUPO_BC, 2)} — desconto de 20%. O valor soma ao custo da energia
-            e aparece à parte no Dashboard e nos Relatórios.
+            {formatarNumero(FATOR_GRUPO_BC, 2)}. Desconto = kWh injetados × (tarifa do CONSUMO NÃO
+            COMPENSADO + tarifa ADC BANDEIRA) − Valor Grupo BC. Custo cheio = Valor Grupo BC +
+            Desconto — é o valor somado ao custo da energia. Sem linha ADC BANDEIRA, a tarifa da
+            bandeira é zero.
           </>
         }
       />
@@ -210,7 +222,7 @@ function PaginaGrupoBc() {
           </CartaoGrafico>
           <CartaoGrafico
             titulo="Cálculo por fatura"
-            descricao={`Faturas das UCs do Grupo BC · total ${formatarMoeda(totalBc)}. Sem linha INJEÇÃO SCEE, o valor é zero.`}
+            descricao={`Faturas das UCs do Grupo BC · Valor ${formatarMoeda(soma("valor"))} · Desconto ${formatarMoeda(soma("desconto"))} · Custo cheio ${formatarMoeda(soma("custoCheio"))}. Sem linha INJEÇÃO SCEE, os valores são zero.`}
           >
             {calculo.isLoading ? (
               <Carregando />

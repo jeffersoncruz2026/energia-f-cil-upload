@@ -13,15 +13,21 @@ const item = (descricao: string, quantidade: number, extra: Partial<ItemGrupoBc>
 });
 
 describe("Grupo BC", () => {
-  it("exemplo AGO/2026 UC 157990001258: 73,90 × 1,174665 × 0,80 = 69,45", () => {
+  it("exemplo AGO/2026 UC 157990001258: valor 69,45, desconto 19,19, custo cheio 88,64", () => {
     const r = calcularGrupoBc([
       item("CONSUMO NÃO COMPENSADO", 120, { valor_unitario: 1.174665, valor_total: 140.96 }),
+      item("ADC BANDEIRA AMARELA", 120, { valor_unitario: 0.024828, valor_total: 2.98 }),
       item("INJEÇÃO SCEE - UC 10019756133 - GD II", -73.9, { valor_total: -86.81 }),
     ]);
+    // 73,90 × 1,174665 × 0,80 = 69,45
+    // 73,90 × (1,174665 + 0,024828) − 69,45 = 88,6425 − 69,45 = 19,19
     expect(r).toEqual({
       kwhInjetados: 73.9,
       tarifa: 1.174665,
+      tarifaBandeira: 0.024828,
       valor: 69.45,
+      desconto: 19.19,
+      custoCheio: 88.64,
       situacao: "calculado",
     });
   });
@@ -35,10 +41,41 @@ describe("Grupo BC", () => {
     expect(r.valor).toBe(69.45);
   });
 
+  it("sem linha ADC BANDEIRA (bandeira verde) a tarifa da bandeira é zero", () => {
+    const r = calcularGrupoBc([
+      item("CONSUMO NÃO COMPENSADO", 120, { valor_unitario: 1.174665 }),
+      item("INJEÇÃO SCEE", 73.9),
+    ]);
+    // 73,90 × 1,174665 = 86,8077 − 69,45 = 17,36
+    expect(r).toMatchObject({
+      tarifaBandeira: 0,
+      valor: 69.45,
+      desconto: 17.36,
+      custoCheio: 86.81,
+    });
+  });
+
+  it("várias linhas de bandeira: tarifa ponderada pelo kWh", () => {
+    const r = calcularGrupoBc([
+      item("CONSUMO NÃO COMPENSADO", 100, { valor_unitario: 1 }),
+      item("ADC BANDEIRA AMARELA", 50, { valor_unitario: 0.02, valor_total: 1 }),
+      item("ADC BANDEIRA VERMELHA P1", 50, { valor_unitario: 0.06, valor_total: 3 }),
+      item("INJEÇÃO SCEE", 100),
+    ]);
+    expect(r.tarifaBandeira).toBeCloseTo(0.04);
+    expect(r).toMatchObject({ valor: 80, desconto: 24, custoCheio: 104 });
+  });
+
   it("sem linha INJEÇÃO SCEE o valor é zero", () => {
     const r = calcularGrupoBc([item("CONSUMO NÃO COMPENSADO", 100, { valor_unitario: 1.1 })]);
-    expect(r).toMatchObject({ kwhInjetados: 0, valor: 0, situacao: "sem_injecao" });
-    expect(calcularGrupoBc([]).valor).toBe(0);
+    expect(r).toMatchObject({
+      kwhInjetados: 0,
+      valor: 0,
+      desconto: 0,
+      custoCheio: 0,
+      situacao: "sem_injecao",
+    });
+    expect(calcularGrupoBc([]).custoCheio).toBe(0);
   });
 
   it("não repete a energia lançada em TE e TUSD (estrutura Equatorial)", () => {
@@ -68,14 +105,27 @@ describe("Grupo BC", () => {
 
   it("com injeção mas sem CONSUMO NÃO COMPENSADO a tarifa fica indisponível", () => {
     const r = calcularGrupoBc([item("INJEÇÃO SCEE - UC 1", 10)]);
-    expect(r).toMatchObject({ valor: null, situacao: "tarifa_indisponivel" });
+    expect(r).toMatchObject({
+      valor: null,
+      desconto: null,
+      custoCheio: null,
+      situacao: "tarifa_indisponivel",
+    });
   });
 
-  it("aplica o valor só nas faturas das UCs do Grupo BC", () => {
+  it("aplica os valores só nas faturas das UCs do Grupo BC", () => {
     const resultados = new Map([
       [
         "f1",
-        { kwhInjetados: 73.9, tarifa: 1.174665, valor: 69.45, situacao: "calculado" as const },
+        {
+          kwhInjetados: 73.9,
+          tarifa: 1.174665,
+          tarifaBandeira: 0.024828,
+          valor: 69.45,
+          desconto: 19.19,
+          custoCheio: 88.64,
+          situacao: "calculado" as const,
+        },
       ],
     ]);
     const [a, b] = aplicarGrupoBc(
@@ -86,7 +136,12 @@ describe("Grupo BC", () => {
       new Set(["uc-bc"]),
       resultados,
     );
-    expect(a!.valor_grupo_bc).toBe(69.45);
-    expect(b!.valor_grupo_bc).toBeNull();
+    expect(a).toMatchObject({
+      valor_grupo_bc: 69.45,
+      desconto_grupo_bc: 19.19,
+      custo_cheio_grupo_bc: 88.64,
+      kwh_grupo_bc: 73.9,
+    });
+    expect(b!.custo_cheio_grupo_bc).toBeNull();
   });
 });

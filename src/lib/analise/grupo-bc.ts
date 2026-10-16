@@ -1,6 +1,9 @@
 // Grupo BC: energia injetada por terceiros nas UCs cadastradas como Grupo BC.
 //
 //   Valor Grupo BC = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO × 0,80
+//   Desconto       = kWh injetados × (tarifa CONSUMO NÃO COMPENSADO + tarifa ADC
+//                    BANDEIRA) − Valor Grupo BC
+//   Custo cheio    = Valor Grupo BC + Desconto  (é o que soma ao custo da energia)
 //
 // - kWh injetados: quantidade das linhas "INJEÇÃO SCEE" (somadas). A Equatorial
 //   repete a mesma energia em linhas de TE e TUSD; por isso, em cada posto
@@ -10,7 +13,9 @@
 // - 0,80: desconto de 20% sobre a tarifa.
 // - Só o resultado final é arredondado (2 casas). Sem INJEÇÃO SCEE → 0.
 //
-// O valor soma ao custo da energia e também é exibido à parte ("Grupo BC").
+// - Bandeira: preço unitário com tributos da linha "ADC BANDEIRA"; sem linha = 0.
+// O custo cheio soma ao custo da energia; valor, desconto e custo cheio também
+// são exibidos à parte.
 
 import { identificarPosto, normalizarTexto } from "../xml/classificacao-itens";
 
@@ -29,9 +34,16 @@ export type SituacaoGrupoBc = "calculado" | "sem_injecao" | "tarifa_indisponivel
 
 export interface ResultadoGrupoBc {
   kwhInjetados: number;
+  /** Tarifa do CONSUMO NÃO COMPENSADO (R$/kWh, com tributos). */
   tarifa: number | null;
-  /** R$ (2 casas); null quando há injeção mas a tarifa não está na fatura. */
+  /** Tarifa do ADC BANDEIRA (R$/kWh, com tributos); 0 sem bandeira. */
+  tarifaBandeira: number;
+  /** Valor Grupo BC = kWh × tarifa × 0,80 (2 casas); null sem tarifa na fatura. */
   valor: number | null;
+  /** Desconto = kWh × (tarifa + bandeira) − Valor Grupo BC. */
+  desconto: number | null;
+  /** Custo cheio = Valor Grupo BC + Desconto (soma ao custo da energia). */
+  custoCheio: number | null;
   situacao: SituacaoGrupoBc;
 }
 
@@ -43,10 +55,11 @@ export const ROTULOS_SITUACAO_GRUPO_BC: Record<SituacaoGrupoBc, string> = {
 
 const ehInjecaoScee = (d: string) => /\bINJECAO SCEE\b/.test(d);
 const ehConsumoNaoCompensado = (d: string) => /\bCONSUMO NAO COMPENSADO\b/.test(d);
+const ehBandeira = (d: string) => /\bAD(C|IC|ICIONAL)\.? ?(DE )?BANDEIRA\b/.test(d);
 
 /** Filtros (ilike) para buscar no banco só as linhas usadas no cálculo. */
 export const FILTRO_ITENS_GRUPO_BC =
-  "descricao.ilike.*INJE*SCEE*,descricao.ilike.*CONSUMO N*O COMPENSADO*";
+  "descricao.ilike.*INJE*SCEE*,descricao.ilike.*CONSUMO N*O COMPENSADO*,descricao.ilike.*BANDEIRA*";
 
 /** Posto pelas siglas da Equatorial ("INJEÇÃO SCEE FP", "… HR …", "… P …"). */
 function postoDaDescricao(d: string): string | null {
@@ -91,14 +104,55 @@ export function calcularGrupoBc(itens: ItemGrupoBc[]): ResultadoGrupoBc {
     tarifa = kwh > 0 ? valor / kwh : null;
   }
 
+  // Bandeira: uma linha → vItem; várias (bandeiras diferentes no mês) → média ponderada.
+  const bandeira = itens.filter((i) => ehBandeira(normalizarTexto(i.descricao)));
+  let tarifaBandeira = 0;
+  if (bandeira.length === 1) {
+    const i = bandeira[0]!;
+    tarifaBandeira =
+      i.valor_unitario ??
+      (i.valor_total != null && i.quantidade ? Math.abs(i.valor_total / i.quantidade) : 0);
+  } else if (bandeira.length > 1) {
+    const kwh = bandeira.reduce((s, i) => s + Math.abs(i.quantidade ?? 0), 0);
+    const valor = bandeira.reduce((s, i) => s + Math.abs(i.valor_total ?? 0), 0);
+    tarifaBandeira = kwh > 0 ? valor / kwh : 0;
+  }
+
   if (!injecao.length || kwhInjetados === 0) {
-    return { kwhInjetados: 0, tarifa, valor: 0, situacao: "sem_injecao" };
+    return {
+      kwhInjetados: 0,
+      tarifa,
+      tarifaBandeira,
+      valor: 0,
+      desconto: 0,
+      custoCheio: 0,
+      situacao: "sem_injecao",
+    };
   }
   if (tarifa == null) {
-    return { kwhInjetados, tarifa: null, valor: null, situacao: "tarifa_indisponivel" };
+    return {
+      kwhInjetados,
+      tarifa: null,
+      tarifaBandeira,
+      valor: null,
+      desconto: null,
+      custoCheio: null,
+      situacao: "tarifa_indisponivel",
+    };
   }
-  const valor = Math.round(kwhInjetados * tarifa * FATOR_GRUPO_BC * 100) / 100;
-  return { kwhInjetados, tarifa, valor, situacao: "calculado" };
+  const arred2 = (v: number) => Math.round(v * 100) / 100;
+  const valor = arred2(kwhInjetados * tarifa * FATOR_GRUPO_BC);
+  const desconto = arred2(kwhInjetados * (tarifa + tarifaBandeira) - valor);
+  const custoCheio = arred2(valor + desconto);
+  return {
+    kwhInjetados,
+    tarifa,
+    tarifaBandeira,
+    valor,
+    desconto,
+    custoCheio,
+    situacao: "calculado",
+  };
 }
 
 /** Resultado por fatura, apenas para as faturas das UCs do Grupo BC. */
@@ -125,12 +179,26 @@ export function aplicarGrupoBc<T extends { id: string; unidade_consumidora_id: s
   faturas: T[],
   ucsGrupoBc: Set<string>,
   resultados: Map<string, ResultadoGrupoBc>,
-): (T & { valor_grupo_bc: number | null; kwh_grupo_bc: number | null })[] {
+): (T & CamposGrupoBc)[] {
   return faturas.map((f) => {
     const r =
       f.unidade_consumidora_id && ucsGrupoBc.has(f.unidade_consumidora_id)
         ? resultados.get(f.id)
         : undefined;
-    return { ...f, valor_grupo_bc: r ? r.valor : null, kwh_grupo_bc: r ? r.kwhInjetados : null };
+    return {
+      ...f,
+      valor_grupo_bc: r ? r.valor : null,
+      desconto_grupo_bc: r ? r.desconto : null,
+      custo_cheio_grupo_bc: r ? r.custoCheio : null,
+      kwh_grupo_bc: r ? r.kwhInjetados : null,
+    };
   });
+}
+
+/** Campos do Grupo BC acrescentados às faturas das UCs do grupo. */
+export interface CamposGrupoBc {
+  valor_grupo_bc: number | null;
+  desconto_grupo_bc: number | null;
+  custo_cheio_grupo_bc: number | null;
+  kwh_grupo_bc: number | null;
 }

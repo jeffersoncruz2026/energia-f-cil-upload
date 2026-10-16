@@ -4,12 +4,14 @@ import {
   Building2,
   CircleDollarSign,
   FileStack,
+  BadgePercent,
   Gauge,
   Handshake,
   Inbox,
   PiggyBank,
   PlugZap,
   Receipt,
+  Scale,
   TrendingUp,
   Upload,
   Zap,
@@ -222,7 +224,7 @@ function Dashboard() {
               detalhe={anteriorTexto}
               ajuda={
                 filtros.baseCusto === "energia"
-                  ? "Fatura sem valor a pagar: valor faturado + créditos abatidos pela distribuidora. Fatura com valor a pagar: valor faturado. Nas UCs do Grupo BC soma-se o Valor Grupo BC."
+                  ? "Fatura sem valor a pagar: valor faturado + créditos abatidos pela distribuidora. Fatura com valor a pagar: valor faturado. Nas UCs do Grupo BC soma-se o custo cheio do Grupo BC."
                   : "Soma do valor líquido faturado (vNF) das faturas válidas do período. Valor faturado, não necessariamente pago."
               }
             />
@@ -249,7 +251,25 @@ function Dashboard() {
               icone={Handshake}
               valor={formatarMoeda(ind.grupoBc)}
               detalhe={`${formatarKwh(ind.kwhGrupoBc)} injetados por terceiros`}
-              ajuda="UCs do Grupo BC: kWh injetados (INJEÇÃO SCEE) × tarifa do consumo não compensado (com tributos) × 0,80. Incluído no custo da energia."
+              ajuda="Valor pago ao Grupo BC: kWh injetados (INJEÇÃO SCEE) × tarifa do consumo não compensado (com tributos) × 0,80."
+            />
+            <CartaoIndicador
+              titulo="Desconto Grupo BC"
+              icone={BadgePercent}
+              valor={formatarMoeda(ind.descontoGrupoBc)}
+              detalhe={
+                ind.custoCheioGrupoBc > 0
+                  ? `${formatarNumero((ind.descontoGrupoBc / ind.custoCheioGrupoBc) * 100, 1)}% do custo cheio`
+                  : "economia com o Grupo BC"
+              }
+              ajuda="kWh injetados × (tarifa do consumo não compensado + tarifa ADC BANDEIRA) − Valor Grupo BC."
+            />
+            <CartaoIndicador
+              titulo="Custo cheio Grupo BC"
+              icone={Scale}
+              valor={formatarMoeda(ind.custoCheioGrupoBc)}
+              detalhe="incluído no custo da energia"
+              ajuda="Valor Grupo BC + Desconto: custo da energia injetada pela tarifa cheia (consumo não compensado + bandeira). É o valor do Grupo BC somado ao custo da energia."
             />
             <CartaoIndicador
               titulo="Consumo total"
@@ -507,6 +527,18 @@ function Dashboard() {
                   valor: (p) => p.creditos,
                 },
                 { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (p) => p.grupoBc },
+                {
+                  id: "descontoGrupoBc",
+                  titulo: "Desconto Grupo BC",
+                  tipo: "moeda",
+                  valor: (p) => p.descontoGrupoBc,
+                },
+                {
+                  id: "custoCheioGrupoBc",
+                  titulo: "Custo cheio Grupo BC",
+                  tipo: "moeda",
+                  valor: (p) => p.custoCheioGrupoBc,
+                },
                 { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (p) => p.consumo },
                 { id: "kwh", titulo: "R$/kWh", tipo: "decimal4", valor: (p) => p.custoKwh },
                 { id: "faturas", titulo: "Faturas", tipo: "numero", valor: (p) => p.faturas },
@@ -567,6 +599,18 @@ function DetalheMes({
       valor: (f) => creditosDaFatura(f) || null,
     },
     { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (f) => f.valor_grupo_bc ?? null },
+    {
+      id: "descontoGrupoBc",
+      titulo: "Desconto Grupo BC",
+      tipo: "moeda",
+      valor: (f) => f.desconto_grupo_bc ?? null,
+    },
+    {
+      id: "custoCheioGrupoBc",
+      titulo: "Custo cheio Grupo BC",
+      tipo: "moeda",
+      valor: (f) => f.custo_cheio_grupo_bc ?? null,
+    },
     { id: "consumo", titulo: "Consumo", tipo: "kwh", valor: (f) => f.consumo_kwh },
     {
       id: "kwh",

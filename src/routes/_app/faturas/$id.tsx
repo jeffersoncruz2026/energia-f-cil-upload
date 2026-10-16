@@ -111,7 +111,14 @@ function DetalheFatura() {
           ? calcularGrupoBc(itens.map((it) => ({ ...it, fatura_id: id })))
           : null;
       return {
-        fatura: fatura ? { ...fatura, valor_grupo_bc: grupoBc?.valor ?? null } : null,
+        fatura: fatura
+          ? {
+              ...fatura,
+              valor_grupo_bc: grupoBc?.valor ?? null,
+              desconto_grupo_bc: grupoBc?.desconto ?? null,
+              custo_cheio_grupo_bc: grupoBc?.custoCheio ?? null,
+            }
+          : null,
         itens,
         grupoBc,
       };
@@ -544,15 +551,30 @@ function DetalheFatura() {
                 </span>
               </div>
               {consulta.data?.grupoBc && (
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>
-                    (+) Grupo BC ({formatarKwh(consulta.data.grupoBc.kwhInjetados)} ×{" "}
-                    {consulta.data.grupoBc.tarifa != null
-                      ? `R$ ${formatarNumero(consulta.data.grupoBc.tarifa, 6)}`
-                      : "tarifa indisponível"}{" "}
-                    × 0,80)
-                  </span>
-                  <span className="tabular">{formatarMoeda(consulta.data.grupoBc.valor)}</span>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div className="flex justify-between pl-4 text-xs">
+                    <span>
+                      Grupo BC ({formatarKwh(consulta.data.grupoBc.kwhInjetados)} ×{" "}
+                      {consulta.data.grupoBc.tarifa != null
+                        ? `R$ ${formatarNumero(consulta.data.grupoBc.tarifa, 6)}`
+                        : "tarifa indisponível"}{" "}
+                      × 0,80)
+                    </span>
+                    <span className="tabular">{formatarMoeda(consulta.data.grupoBc.valor)}</span>
+                  </div>
+                  <div className="flex justify-between pl-4 text-xs">
+                    <span>
+                      Desconto Grupo BC (kWh × (tarifa + bandeira R${" "}
+                      {formatarNumero(consulta.data.grupoBc.tarifaBandeira, 6)}) − Grupo BC)
+                    </span>
+                    <span className="tabular">{formatarMoeda(consulta.data.grupoBc.desconto)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>(+) Custo cheio Grupo BC</span>
+                    <span className="tabular">
+                      {formatarMoeda(consulta.data.grupoBc.custoCheio)}
+                    </span>
+                  </div>
                 </div>
               )}
               <div className="flex justify-between text-sm font-medium">
