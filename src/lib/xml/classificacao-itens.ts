@@ -49,6 +49,8 @@ export function classificarItem(descricao: string | null | undefined): TipoItem 
   // crédito pago pela distribuidora ao consumidor.
   if (/\b(DIC|FIC|DMIC|DICRI)\b/.test(d)) return "credito";
   if (/INJETAD|INJECAO|\bENERGIA INJ|\bINJ\b/.test(d)) return "injecao";
+  // "CONSUMO NÃO COMPENSADO": energia consumida cobrada normalmente (não é crédito)
+  if (/\bNAO COMPENSAD/.test(d)) return "consumo";
   if (
     /COMPENS|CREDITO DE ENERGIA|CREDITOS DE ENERGIA|\bSCEE\b|\bGD\b|GERACAO DISTRIBUIDA/.test(d)
   ) {

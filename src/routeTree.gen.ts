@@ -21,6 +21,8 @@ import { Route as AppImportarRouteImport } from './routes/_app/importar'
 import { Route as AppPendenciasRouteImport } from './routes/_app/pendencias'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppSolarRouteImport } from './routes/_app/solar'
+import { Route as AppDownloadFaturaIndexRouteImport } from './routes/_app/download-fatura/index'
+import { Route as AppDownloadFaturaIdRouteImport } from './routes/_app/download-fatura/$id'
 import { Route as AppFaturasIndexRouteImport } from './routes/_app/faturas/index'
 import { Route as AppFaturasIdRouteImport } from './routes/_app/faturas/$id'
 import { Route as AppUnidadesIndexRouteImport } from './routes/_app/unidades/index'
@@ -85,6 +87,16 @@ const AppSolarRoute = AppSolarRouteImport.update({
   path: '/solar',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDownloadFaturaIndexRoute = AppDownloadFaturaIndexRouteImport.update({
+  id: '/download-fatura/',
+  path: '/download-fatura/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDownloadFaturaIdRoute = AppDownloadFaturaIdRouteImport.update({
+  id: '/download-fatura/$id',
+  path: '/download-fatura/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFaturasIndexRoute = AppFaturasIndexRouteImport.update({
   id: '/faturas/',
   path: '/faturas/',
@@ -118,8 +130,10 @@ export interface FileRoutesByFullPath {
   '/pendencias': typeof AppPendenciasRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/solar': typeof AppSolarRoute
+  '/download-fatura/$id': typeof AppDownloadFaturaIdRoute
   '/faturas/$id': typeof AppFaturasIdRoute
   '/unidades/$id': typeof AppUnidadesIdRoute
+  '/download-fatura/': typeof AppDownloadFaturaIndexRoute
   '/faturas/': typeof AppFaturasIndexRoute
   '/unidades/': typeof AppUnidadesIndexRoute
 }
@@ -135,8 +149,10 @@ export interface FileRoutesByTo {
   '/pendencias': typeof AppPendenciasRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/solar': typeof AppSolarRoute
+  '/download-fatura/$id': typeof AppDownloadFaturaIdRoute
   '/faturas/$id': typeof AppFaturasIdRoute
   '/unidades/$id': typeof AppUnidadesIdRoute
+  '/download-fatura': typeof AppDownloadFaturaIndexRoute
   '/faturas': typeof AppFaturasIndexRoute
   '/unidades': typeof AppUnidadesIndexRoute
 }
@@ -154,8 +170,10 @@ export interface FileRoutesById {
   '/_app/pendencias': typeof AppPendenciasRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/solar': typeof AppSolarRoute
+  '/_app/download-fatura/$id': typeof AppDownloadFaturaIdRoute
   '/_app/faturas/$id': typeof AppFaturasIdRoute
   '/_app/unidades/$id': typeof AppUnidadesIdRoute
+  '/_app/download-fatura/': typeof AppDownloadFaturaIndexRoute
   '/_app/faturas/': typeof AppFaturasIndexRoute
   '/_app/unidades/': typeof AppUnidadesIndexRoute
 }
@@ -173,8 +191,10 @@ export interface FileRouteTypes {
     | '/pendencias'
     | '/relatorios'
     | '/solar'
+    | '/download-fatura/$id'
     | '/faturas/$id'
     | '/unidades/$id'
+    | '/download-fatura/'
     | '/faturas/'
     | '/unidades/'
   fileRoutesByTo: FileRoutesByTo
@@ -190,8 +210,10 @@ export interface FileRouteTypes {
     | '/pendencias'
     | '/relatorios'
     | '/solar'
+    | '/download-fatura/$id'
     | '/faturas/$id'
     | '/unidades/$id'
+    | '/download-fatura'
     | '/faturas'
     | '/unidades'
   id:
@@ -208,8 +230,10 @@ export interface FileRouteTypes {
     | '/_app/pendencias'
     | '/_app/relatorios'
     | '/_app/solar'
+    | '/_app/download-fatura/$id'
     | '/_app/faturas/$id'
     | '/_app/unidades/$id'
+    | '/_app/download-fatura/'
     | '/_app/faturas/'
     | '/_app/unidades/'
   fileRoutesById: FileRoutesById
@@ -306,6 +330,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSolarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/download-fatura/': {
+      id: '/_app/download-fatura/'
+      path: '/download-fatura'
+      fullPath: '/download-fatura/'
+      preLoaderRoute: typeof AppDownloadFaturaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/download-fatura/$id': {
+      id: '/_app/download-fatura/$id'
+      path: '/download-fatura/$id'
+      fullPath: '/download-fatura/$id'
+      preLoaderRoute: typeof AppDownloadFaturaIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/faturas/': {
       id: '/_app/faturas/'
       path: '/faturas'
@@ -347,8 +385,10 @@ interface AppRouteChildren {
   AppPendenciasRoute: typeof AppPendenciasRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppSolarRoute: typeof AppSolarRoute
+  AppDownloadFaturaIdRoute: typeof AppDownloadFaturaIdRoute
   AppFaturasIdRoute: typeof AppFaturasIdRoute
   AppUnidadesIdRoute: typeof AppUnidadesIdRoute
+  AppDownloadFaturaIndexRoute: typeof AppDownloadFaturaIndexRoute
   AppFaturasIndexRoute: typeof AppFaturasIndexRoute
   AppUnidadesIndexRoute: typeof AppUnidadesIndexRoute
 }
@@ -363,8 +403,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppPendenciasRoute: AppPendenciasRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppSolarRoute: AppSolarRoute,
+  AppDownloadFaturaIdRoute: AppDownloadFaturaIdRoute,
   AppFaturasIdRoute: AppFaturasIdRoute,
   AppUnidadesIdRoute: AppUnidadesIdRoute,
+  AppDownloadFaturaIndexRoute: AppDownloadFaturaIndexRoute,
   AppFaturasIndexRoute: AppFaturasIndexRoute,
   AppUnidadesIndexRoute: AppUnidadesIndexRoute,
 }

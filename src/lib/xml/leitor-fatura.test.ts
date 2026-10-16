@@ -330,6 +330,39 @@ describe("leitura de NF3e", () => {
     expect(avisos.join(" ")).toMatch(/zerada sem créditos identificados/);
   });
 
+  it("CONSUMO NÃO COMPENSADO é consumo e as injeções SCEE positivas viram crédito (Equatorial)", () => {
+    const { fatura, itens } = lerFatura(
+      gerarNF3e({
+        vNF: 33.78,
+        itens: [
+          { descricao: "CONSUMO NÃO COMPENSADO", qtd: 30.0021, uMed: "2", vProd: 33.78 },
+          { descricao: "CONSUMO SCEE", qtd: 490.9079, uMed: "2", vProd: 379.94 },
+          {
+            descricao: "INJEÇÃO SCEE - UC 000128066501220 - GD I",
+            qtd: 4.2,
+            uMed: "2",
+            vProd: 3.25,
+            cClass: "5603000",
+          },
+          {
+            descricao: "INJEÇÃO SCEE - UC 000405731001244 - GD I",
+            qtd: 486.7079,
+            uMed: "2",
+            vProd: 376.69,
+            cClass: "5603000",
+          },
+        ],
+      }),
+    );
+    expect(itens.map((i) => [i.tipo_item, i.valor_total])).toEqual([
+      ["consumo", 33.78],
+      ["consumo", 379.94],
+      ["injecao", -3.25],
+      ["injecao", -376.69],
+    ]);
+    expect(fatura.consumo_kwh).toBeCloseTo(520.91, 2);
+  });
+
   it("identifica documento sem protocolo e documento substituto", () => {
     const semProt = lerFatura(gerarNF3e({ protocolo: false }));
     expect(semProt.fatura.status_documento).toBe("sem_protocolo");

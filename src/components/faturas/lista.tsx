@@ -71,6 +71,7 @@ export const CAMPOS_LISTA = [
   "data_pagamento",
   "valor_pago",
   "nome_arquivo",
+  "arquivo_xml_path",
   "excluida",
   "motivo_exclusao",
   "created_at",
