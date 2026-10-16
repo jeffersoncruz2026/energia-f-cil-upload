@@ -5,7 +5,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   aplicarGrupoBc,
   calcularGrupoBcPorFatura,
+  faturasComInjecaoGrupoBc,
   FILTRO_ITENS_GRUPO_BC,
+  normalizarNumeroUc,
   type ItemGrupoBc,
   type ResultadoGrupoBc,
 } from "./analise/grupo-bc";
@@ -93,17 +95,38 @@ export async function buscarItensGd(cliente: SupabaseClient) {
   return resultado;
 }
 
-/** IDs das UCs cadastradas como Grupo BC (vazio se a coluna ainda não existir no banco). */
-export async function buscarUcsGrupoBc(cliente: SupabaseClient): Promise<Set<string>> {
+/** Usinas (UCs geradoras) do Grupo BC, normalizadas (vazio se ainda não houver cadastro). */
+export async function buscarGeradorasGrupoBc(cliente: SupabaseClient): Promise<Set<string>> {
   const { data, error } = await cliente
-    .from("unidades_consumidoras")
-    .select("id")
-    .eq("grupo_bc", true);
-  if (error) return new Set();
-  return new Set((data ?? []).map((u: { id: string }) => u.id));
+    .from("configuracoes")
+    .select("valor")
+    .eq("chave", "grupo_bc")
+    .maybeSingle();
+  if (error || !data) return new Set();
+  const lista = (data.valor as { geradoras?: unknown } | null)?.geradoras;
+  return new Set(
+    (Array.isArray(lista) ? lista : []).map((g) => normalizarNumeroUc(String(g))).filter(Boolean),
+  );
 }
 
-/** Linhas "INJEÇÃO SCEE" e "CONSUMO NÃO COMPENSADO" das faturas informadas. */
+/** Linhas "INJEÇÃO SCEE" de todas as faturas (para achar as usinas e as faturas do Grupo BC). */
+export async function buscarInjecoesScee(cliente: SupabaseClient): Promise<ItemGrupoBc[]> {
+  const resultado: ItemGrupoBc[] = [];
+  for (let inicio = 0; ; inicio += TAMANHO_PAGINA) {
+    const { data, error } = await cliente
+      .from("itens_fatura")
+      .select("fatura_id, descricao, quantidade, valor_unitario, valor_total, posto_tarifario")
+      .ilike("descricao", "%INJE%SCEE%")
+      .order("id", { ascending: true })
+      .range(inicio, inicio + TAMANHO_PAGINA - 1);
+    if (error) throw error;
+    resultado.push(...((data ?? []) as ItemGrupoBc[]));
+    if (!data || data.length < TAMANHO_PAGINA || inicio > 500_000) break;
+  }
+  return resultado;
+}
+
+/** Linhas "INJEÇÃO SCEE", "CONSUMO NÃO COMPENSADO" e "ADC BANDEIRA" das faturas informadas. */
 export async function buscarItensGrupoBc(
   cliente: SupabaseClient,
   faturaIds: string[],
@@ -128,19 +151,19 @@ export async function buscarItensGrupoBc(
 }
 
 /**
- * Acrescenta às faturas o Valor Grupo BC (UCs do Grupo BC) e devolve também o
- * resultado detalhado por fatura (kWh, tarifa, situação) para a guia Grupo BC.
+ * Acrescenta às faturas os valores do Grupo BC (faturas com injeção de usina
+ * cadastrada no Grupo BC) e devolve também o resultado detalhado por fatura.
  */
-export async function comGrupoBc<T extends { id: string; unidade_consumidora_id: string | null }>(
-  cliente: SupabaseClient,
-  faturas: T[],
-) {
-  const ucs = await buscarUcsGrupoBc(cliente);
-  const ids = faturas
-    .filter((f) => f.unidade_consumidora_id && ucs.has(f.unidade_consumidora_id))
-    .map((f) => f.id);
-  const resultados = ids.length
-    ? calcularGrupoBcPorFatura(ids, await buscarItensGrupoBc(cliente, ids))
-    : new Map<string, ResultadoGrupoBc>();
-  return { faturas: aplicarGrupoBc(faturas, ucs, resultados), ucs, resultados };
+export async function comGrupoBc<T extends { id: string }>(cliente: SupabaseClient, faturas: T[]) {
+  const geradoras = await buscarGeradorasGrupoBc(cliente);
+  if (!geradoras.size || !faturas.length) {
+    return { faturas: aplicarGrupoBc(faturas, new Map()), geradoras, resultados: new Map() };
+  }
+  const ids = new Set(faturas.map((f) => f.id));
+  const injecoes = (await buscarInjecoesScee(cliente)).filter((i) => ids.has(i.fatura_id));
+  const faturasBc = faturasComInjecaoGrupoBc(injecoes, geradoras);
+  const resultados: Map<string, ResultadoGrupoBc> = faturasBc.length
+    ? calcularGrupoBcPorFatura(await buscarItensGrupoBc(cliente, faturasBc), geradoras)
+    : new Map();
+  return { faturas: aplicarGrupoBc(faturas, resultados), geradoras, resultados };
 }

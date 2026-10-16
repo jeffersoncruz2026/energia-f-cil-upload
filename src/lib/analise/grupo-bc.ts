@@ -1,4 +1,6 @@
-// Grupo BC: energia injetada por terceiros nas UCs cadastradas como Grupo BC.
+// Grupo BC: energia injetada por terceiros — usinas (UCs geradoras) cadastradas
+// como Grupo BC. Só entram as linhas "INJEÇÃO SCEE – UC <geradora do Grupo BC>";
+// injeções de outras geradoras (ex.: outra UC da própria fazenda) ficam de fora.
 //
 //   Valor Grupo BC = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO × 0,80
 //   Desconto       = kWh injetados × (tarifa CONSUMO NÃO COMPENSADO + tarifa ADC
@@ -87,8 +89,29 @@ function kwhSemRepetir(itens: ItemGrupoBc[]): number {
   return total;
 }
 
-export function calcularGrupoBc(itens: ItemGrupoBc[]): ResultadoGrupoBc {
-  const injecao = itens.filter((i) => ehInjecaoScee(normalizarTexto(i.descricao)));
+/** Número da UC só com dígitos e sem zeros à esquerda (000405731001244 = 405731001244). */
+export function normalizarNumeroUc(t: string | null | undefined): string {
+  return (t ?? "").replace(/\D/g, "").replace(/^0+/, "");
+}
+
+/** UC geradora citada na linha de injeção ("INJEÇÃO SCEE - UC 000405731001244 - GD I"). */
+export function geradoraDaLinha(descricao: string | null | undefined): string | null {
+  const n = normalizarTexto(descricao).match(/\bUC\s*:?\s*(\d+)/)?.[1];
+  return n ? normalizarNumeroUc(n) || null : null;
+}
+
+/** Linhas de injeção das usinas do Grupo BC (sem cadastro informado, todas). */
+function injecoesGrupoBc(itens: ItemGrupoBc[], geradoras?: Set<string>): ItemGrupoBc[] {
+  return itens.filter((i) => {
+    if (!ehInjecaoScee(normalizarTexto(i.descricao))) return false;
+    if (!geradoras) return true;
+    const g = geradoraDaLinha(i.descricao);
+    return g != null && geradoras.has(g);
+  });
+}
+
+export function calcularGrupoBc(itens: ItemGrupoBc[], geradoras?: Set<string>): ResultadoGrupoBc {
+  const injecao = injecoesGrupoBc(itens, geradoras);
   const kwhInjetados = Math.round(kwhSemRepetir(injecao) * 1000) / 1000;
   const consumoNc = itens.filter((i) => ehConsumoNaoCompensado(normalizarTexto(i.descricao)));
 
@@ -155,36 +178,44 @@ export function calcularGrupoBc(itens: ItemGrupoBc[]): ResultadoGrupoBc {
   };
 }
 
-/** Resultado por fatura, apenas para as faturas das UCs do Grupo BC. */
-export function calcularGrupoBcPorFatura(
-  faturaIds: Iterable<string>,
-  itens: ItemGrupoBc[],
-): Map<string, ResultadoGrupoBc> {
+function agruparPorFatura(itens: ItemGrupoBc[]): Map<string, ItemGrupoBc[]> {
   const porFatura = new Map<string, ItemGrupoBc[]>();
   for (const i of itens) {
     const l = porFatura.get(i.fatura_id);
     if (l) l.push(i);
     else porFatura.set(i.fatura_id, [i]);
   }
+  return porFatura;
+}
+
+/** IDs das faturas que têm injeção de alguma usina do Grupo BC. */
+export function faturasComInjecaoGrupoBc(itens: ItemGrupoBc[], geradoras: Set<string>): string[] {
+  return [...new Set(injecoesGrupoBc(itens, geradoras).map((i) => i.fatura_id))];
+}
+
+/** Resultado por fatura, apenas para as faturas com injeção de usina do Grupo BC. */
+export function calcularGrupoBcPorFatura(
+  itens: ItemGrupoBc[],
+  geradoras: Set<string>,
+): Map<string, ResultadoGrupoBc> {
   const resultado = new Map<string, ResultadoGrupoBc>();
-  for (const id of faturaIds) resultado.set(id, calcularGrupoBc(porFatura.get(id) ?? []));
+  for (const [id, lista] of agruparPorFatura(itens)) {
+    if (!injecoesGrupoBc(lista, geradoras).length) continue;
+    resultado.set(id, calcularGrupoBc(lista, geradoras));
+  }
   return resultado;
 }
 
 /**
- * Preenche `valor_grupo_bc` (e o kWh injetado) nas faturas das UCs do Grupo BC.
- * Faturas de outras UCs ficam sem valor (não somam nada ao custo).
+ * Preenche os campos do Grupo BC nas faturas com resultado (injeção de usina do
+ * Grupo BC). As demais ficam sem valor (não somam nada ao custo).
  */
-export function aplicarGrupoBc<T extends { id: string; unidade_consumidora_id: string | null }>(
+export function aplicarGrupoBc<T extends { id: string }>(
   faturas: T[],
-  ucsGrupoBc: Set<string>,
   resultados: Map<string, ResultadoGrupoBc>,
 ): (T & CamposGrupoBc)[] {
   return faturas.map((f) => {
-    const r =
-      f.unidade_consumidora_id && ucsGrupoBc.has(f.unidade_consumidora_id)
-        ? resultados.get(f.id)
-        : undefined;
+    const r = resultados.get(f.id);
     return {
       ...f,
       valor_grupo_bc: r ? r.valor : null,
@@ -193,6 +224,41 @@ export function aplicarGrupoBc<T extends { id: string; unidade_consumidora_id: s
       kwh_grupo_bc: r ? r.kwhInjetados : null,
     };
   });
+}
+
+export interface GeradoraEncontrada {
+  numero: string;
+  /** Número como aparece na fatura (com zeros à esquerda). */
+  numeroOriginal: string;
+  kwhInjetados: number;
+  faturas: number;
+  faturaIds: string[];
+}
+
+/** Usinas (UCs geradoras) citadas nas linhas "INJEÇÃO SCEE", para o cadastro. */
+export function geradorasEncontradas(itens: ItemGrupoBc[]): GeradoraEncontrada[] {
+  const mapa = new Map<string, { original: string; porFatura: Map<string, ItemGrupoBc[]> }>();
+  for (const i of injecoesGrupoBc(itens)) {
+    const original = normalizarTexto(i.descricao).match(/\bUC\s*:?\s*(\d+)/)?.[1];
+    const g = geradoraDaLinha(i.descricao);
+    if (!g || !original) continue;
+    const e = mapa.get(g) ?? { original, porFatura: new Map() };
+    const l = e.porFatura.get(i.fatura_id);
+    if (l) l.push(i);
+    else e.porFatura.set(i.fatura_id, [i]);
+    mapa.set(g, e);
+  }
+  return [...mapa.entries()]
+    .map(([numero, e]) => ({
+      numero,
+      numeroOriginal: e.original,
+      kwhInjetados:
+        Math.round([...e.porFatura.values()].reduce((s, l) => s + kwhSemRepetir(l), 0) * 1000) /
+        1000,
+      faturas: e.porFatura.size,
+      faturaIds: [...e.porFatura.keys()],
+    }))
+    .sort((a, b) => b.kwhInjetados - a.kwhInjetados);
 }
 
 /** Campos do Grupo BC acrescentados às faturas das UCs do grupo. */

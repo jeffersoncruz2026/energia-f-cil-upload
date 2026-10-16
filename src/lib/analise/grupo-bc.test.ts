@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { aplicarGrupoBc, calcularGrupoBc, type ItemGrupoBc } from "./grupo-bc";
+import {
+  aplicarGrupoBc,
+  calcularGrupoBc,
+  calcularGrupoBcPorFatura,
+  faturasComInjecaoGrupoBc,
+  geradoraDaLinha,
+  geradorasEncontradas,
+  normalizarNumeroUc,
+  type ItemGrupoBc,
+} from "./grupo-bc";
 
 const item = (descricao: string, quantidade: number, extra: Partial<ItemGrupoBc> = {}) => ({
   fatura_id: "f1",
@@ -113,7 +122,58 @@ describe("Grupo BC", () => {
     });
   });
 
-  it("aplica os valores só nas faturas das UCs do Grupo BC", () => {
+  it("caso real 04/2026 UC 000172458701255: só a usina do Grupo BC entra (438,40 + 109,60 = 548,00)", () => {
+    const itens = [
+      item("CONSUMO NÃO COMPENSADO", 30.0021, { valor_unitario: 1.125925, valor_total: 33.78 }),
+      item("CONSUMO SCEE", 490.9079, { valor_unitario: 0.77396, valor_total: 379.94 }),
+      item("INJEÇÃO SCEE - UC 000128066501220 - GD I", 4.2, { valor_total: 3.25 }),
+      item("INJEÇÃO SCEE - UC 000405731001244 - GD I", 486.7079, { valor_total: 376.69 }),
+    ];
+    const r = calcularGrupoBc(itens, new Set(["405731001244"]));
+    // 486,7079 × 1,125925 = 548,00 → 438,40 a pagar + 109,60 de desconto
+    expect(r).toMatchObject({
+      kwhInjetados: 486.708,
+      valor: 438.4,
+      desconto: 109.6,
+      custoCheio: 548,
+    });
+    // somando as duas geradoras (comportamento anterior) daria 442,18 + 110,55
+    expect(calcularGrupoBc(itens)).toMatchObject({ valor: 442.18, desconto: 110.55 });
+  });
+
+  it("número da usina casa com ou sem zeros à esquerda", () => {
+    expect(normalizarNumeroUc("000405731001244")).toBe("405731001244");
+    expect(geradoraDaLinha("INJEÇÃO SCEE - UC 000405731001244 - GD I")).toBe("405731001244");
+    expect(geradoraDaLinha("INJEÇÃO SCEE FP - TE")).toBeNull();
+  });
+
+  it("só calcula as faturas com injeção de usina cadastrada", () => {
+    const itens = [
+      { ...item("INJEÇÃO SCEE - UC 000405731001244 - GD I", 10), fatura_id: "a" },
+      { ...item("CONSUMO NÃO COMPENSADO", 5, { valor_unitario: 1 }), fatura_id: "a" },
+      { ...item("INJEÇÃO SCEE - UC 000128066501220 - GD I", 10), fatura_id: "b" },
+      { ...item("CONSUMO NÃO COMPENSADO", 5, { valor_unitario: 1 }), fatura_id: "b" },
+    ];
+    const geradoras = new Set([normalizarNumeroUc("000405731001244")]);
+    expect(faturasComInjecaoGrupoBc(itens, geradoras)).toEqual(["a"]);
+    const r = calcularGrupoBcPorFatura(itens, geradoras);
+    expect([...r.keys()]).toEqual(["a"]);
+    expect(r.get("a")).toMatchObject({ valor: 8, desconto: 2, custoCheio: 10 });
+  });
+
+  it("lista as usinas encontradas nas faturas", () => {
+    const g = geradorasEncontradas([
+      { ...item("INJEÇÃO SCEE - UC 000405731001244 - GD I", 486.7079), fatura_id: "a" },
+      { ...item("INJEÇÃO SCEE - UC 000405731001244 - GD I", 100), fatura_id: "b" },
+      { ...item("INJEÇÃO SCEE - UC 000128066501220 - GD I", 4.2), fatura_id: "a" },
+    ]);
+    expect(g.map((x) => [x.numeroOriginal, x.kwhInjetados, x.faturas])).toEqual([
+      ["000405731001244", 586.708, 2],
+      ["000128066501220", 4.2, 1],
+    ]);
+  });
+
+  it("aplica os valores só nas faturas com resultado", () => {
     const resultados = new Map([
       [
         "f1",
@@ -128,14 +188,7 @@ describe("Grupo BC", () => {
         },
       ],
     ]);
-    const [a, b] = aplicarGrupoBc(
-      [
-        { id: "f1", unidade_consumidora_id: "uc-bc" },
-        { id: "f1", unidade_consumidora_id: "uc-outra" },
-      ],
-      new Set(["uc-bc"]),
-      resultados,
-    );
+    const [a, b] = aplicarGrupoBc([{ id: "f1" }, { id: "f2" }], resultados);
     expect(a).toMatchObject({
       valor_grupo_bc: 69.45,
       desconto_grupo_bc: 19.19,
