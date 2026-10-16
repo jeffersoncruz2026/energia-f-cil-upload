@@ -24,7 +24,7 @@ export const REGRAS_CALCULO = [
   {
     titulo: "Grupo BC (energia injetada por terceiros)",
     texto:
-      "Nas UCs cadastradas no Grupo BC: Valor Grupo BC = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO × 0,80. kWh injetados = quantidade das linhas “INJEÇÃO SCEE” (somadas, sem repetir a mesma energia lançada em TE e TUSD). Tarifa = preço unitário com tributos da linha “CONSUMO NÃO COMPENSADO” (sem bandeira). 0,80 = desconto de 20%. Só o resultado final é arredondado (2 casas). Sem linha INJEÇÃO SCEE, o valor é zero. O Valor Grupo BC soma ao custo da energia e também é exibido à parte (cartão e coluna “Grupo BC”).",
+      "Nas UCs cadastradas no Grupo BC: Valor Grupo BC = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO × 0,80; Desconto = kWh injetados × (tarifa do CONSUMO NÃO COMPENSADO + tarifa ADC BANDEIRA) − Valor Grupo BC; Custo cheio = Valor Grupo BC + Desconto. kWh injetados = quantidade das linhas “INJEÇÃO SCEE” (somadas, sem repetir a mesma energia lançada em TE e TUSD). Tarifas = preço unitário com tributos das linhas “CONSUMO NÃO COMPENSADO” e “ADC BANDEIRA” (sem linha de bandeira = 0). Arredondamento só no resultado final (2 casas); o desconto usa o Valor Grupo BC já arredondado. Sem INJEÇÃO SCEE, tudo é zero. O custo cheio soma ao custo da energia; Valor, Desconto e Custo cheio também aparecem à parte.",
   },
   {
     titulo: "Consumo total",

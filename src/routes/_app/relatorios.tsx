@@ -130,6 +130,8 @@ interface LinhaGrupo {
   valorFaturado: number;
   creditos: number;
   grupoBc: number;
+  descontoGrupoBc: number;
+  custoCheioGrupoBc: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -254,6 +256,18 @@ function PaginaRelatorios() {
     { id: "faturado", titulo: "Valor faturado", tipo: "moeda", valor: (l) => l.valorFaturado },
     { id: "creditos", titulo: "Créditos abatidos", tipo: "moeda", valor: (l) => l.creditos },
     { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (l) => l.grupoBc },
+    {
+      id: "descontoGrupoBc",
+      titulo: "Desconto Grupo BC",
+      tipo: "moeda",
+      valor: (l) => l.descontoGrupoBc,
+    },
+    {
+      id: "custoCheioGrupoBc",
+      titulo: "Custo cheio Grupo BC",
+      tipo: "moeda",
+      valor: (l) => l.custoCheioGrupoBc,
+    },
     {
       id: "participacao",
       titulo: "Participação",
@@ -395,6 +409,18 @@ function PaginaRelatorios() {
             },
             { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (l) => l.grupoBc },
             {
+              id: "descontoGrupoBc",
+              titulo: "Desconto Grupo BC",
+              tipo: "moeda",
+              valor: (l) => l.descontoGrupoBc,
+            },
+            {
+              id: "custoCheioGrupoBc",
+              titulo: "Custo cheio Grupo BC",
+              tipo: "moeda",
+              valor: (l) => l.custoCheioGrupoBc,
+            },
+            {
               id: "custo",
               titulo: filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
               tipo: "moeda",
@@ -441,6 +467,18 @@ function PaginaRelatorios() {
               valor: (p) => p.creditos,
             },
             { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (p) => p.grupoBc },
+            {
+              id: "descontoGrupoBc",
+              titulo: "Desconto Grupo BC",
+              tipo: "moeda",
+              valor: (p) => p.descontoGrupoBc,
+            },
+            {
+              id: "custoCheioGrupoBc",
+              titulo: "Custo cheio Grupo BC",
+              tipo: "moeda",
+              valor: (p) => p.custoCheioGrupoBc,
+            },
             { id: "varCusto", titulo: "Var. custo", tipo: "percentual", valor: (p) => p.varCusto },
             { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (p) => p.consumo },
             {

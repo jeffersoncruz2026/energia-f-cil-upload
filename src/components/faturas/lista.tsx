@@ -19,6 +19,8 @@ export type FaturaLista = Omit<Fatura, "dados_extraidos_json"> & {
   } | null;
   /** Valor Grupo BC (só nas UCs do Grupo BC); soma ao custo da energia. */
   valor_grupo_bc?: number | null;
+  desconto_grupo_bc?: number | null;
+  custo_cheio_grupo_bc?: number | null;
   kwh_grupo_bc?: number | null;
 };
 
@@ -141,6 +143,18 @@ export function colunasFatura(): Coluna<FaturaLista>[] {
       titulo: "Grupo BC",
       tipo: "moeda",
       valor: (f) => f.valor_grupo_bc ?? null,
+    },
+    {
+      id: "descontoGrupoBc",
+      titulo: "Desconto Grupo BC",
+      tipo: "moeda",
+      valor: (f) => f.desconto_grupo_bc ?? null,
+    },
+    {
+      id: "custoCheioGrupoBc",
+      titulo: "Custo cheio Grupo BC",
+      tipo: "moeda",
+      valor: (f) => f.custo_cheio_grupo_bc ?? null,
     },
     { id: "valor", titulo: "Valor faturado", tipo: "moeda", valor: (f) => f.valor_total },
     { id: "icms", titulo: "ICMS", tipo: "moeda", valor: (f) => f.valor_icms, oculta: true },
