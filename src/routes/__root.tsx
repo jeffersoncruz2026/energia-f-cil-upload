@@ -18,7 +18,7 @@ import { TooltipProvider } from "../components/ui/tooltip";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
@@ -46,7 +46,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           Não foi possível carregar a página
@@ -80,7 +80,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#3c756c" },
       { title: "Controle Energia Elétrica — Gestão de Energia Rural" },
       {
         name: "description",
@@ -134,7 +135,13 @@ function RootComponent() {
         <TooltipProvider delayDuration={200}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
-          <Toaster richColors position="top-right" closeButton />
+          <Toaster
+            richColors
+            position="top-right"
+            closeButton
+            offset={{ top: "calc(env(safe-area-inset-top) + 16px)", right: 16 }}
+            mobileOffset={{ top: "calc(env(safe-area-inset-top) + 12px)", left: 12, right: 12 }}
+          />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

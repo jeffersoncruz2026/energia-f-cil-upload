@@ -107,7 +107,7 @@ function PaginaFaturas() {
           barraExtra={
             <>
               <Select value={status} onValueChange={(v) => setStatus(v as FiltroStatus)}>
-                <SelectTrigger className="w-52" aria-label="Filtrar situação">
+                <SelectTrigger className="w-full sm:w-52" aria-label="Filtrar situação">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -119,12 +119,12 @@ function PaginaFaturas() {
                   <SelectItem value="excluidas">Excluídas</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1 text-xs text-muted-foreground sm:flex sm:w-auto">
                 <Input
                   type="month"
                   value={inicio}
                   onChange={(e) => setInicio(e.target.value)}
-                  className="w-36"
+                  className="w-full min-w-0 sm:w-36"
                   aria-label="Competência inicial"
                 />
                 até
@@ -132,7 +132,7 @@ function PaginaFaturas() {
                   type="month"
                   value={fim}
                   onChange={(e) => setFim(e.target.value)}
-                  className="w-36"
+                  className="w-full min-w-0 sm:w-36"
                   aria-label="Competência final"
                 />
               </div>

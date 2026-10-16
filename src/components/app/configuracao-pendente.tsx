@@ -2,7 +2,7 @@ import { Database } from "lucide-react";
 
 export function ConfiguracaoPendente() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-lg rounded-xl border bg-card p-8 shadow-sm">
         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Database className="h-5 w-5" />

@@ -259,7 +259,7 @@ function PaginaSolar() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <CartaoIndicador
               titulo="Energia injetada"
               icone={Sun}
@@ -343,7 +343,7 @@ function PaginaSolar() {
           {(alertasQ.data?.length ?? 0) > 0 && (
             <Card className="border-warning/40">
               <CardContent className="space-y-2 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <TriangleAlert className="h-4 w-4 text-warning-foreground" /> Alertas de energia
                     solar

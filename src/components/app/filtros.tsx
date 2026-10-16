@@ -42,7 +42,11 @@ export function MultiSelecao({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 justify-between gap-1 font-normal">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-full min-w-0 justify-between gap-1 font-normal sm:w-auto"
+        >
           <span className="truncate">{rotulo}</span>
           {valores.length > 0 && (
             <Badge variant="secondary" className="rounded-sm px-1.5 text-[10px]">
@@ -52,7 +56,7 @@ export function MultiSelecao({
           <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="start">
+      <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] p-0" align="start">
         <Command>
           <CommandInput placeholder={`Buscar ${rotulo.toLowerCase()}…`} />
           <CommandList className="max-h-64">
@@ -136,13 +140,13 @@ export function BarraFiltros({
     (filtros.situacao !== "todas" ? 1 : 0);
 
   return (
-    <div className="flex flex-wrap items-end gap-2 rounded-lg border bg-card p-3">
-      <div className="space-y-1">
+    <div className="grid grid-cols-2 items-end gap-2 rounded-lg border bg-card p-3 sm:flex sm:flex-wrap">
+      <div className="col-span-2 space-y-1">
         <Label className="text-xs text-muted-foreground">Período</Label>
-        <div className="flex items-center gap-1">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:flex">
           <Input
             type="month"
-            className="h-9 w-[150px]"
+            className="h-9 w-full min-w-0 sm:w-[150px]"
             value={filtros.inicio ?? ""}
             max={filtros.fim ?? undefined}
             onChange={(e) => set("inicio", e.target.value || null)}
@@ -151,7 +155,7 @@ export function BarraFiltros({
           <span className="text-xs text-muted-foreground">a</span>
           <Input
             type="month"
-            className="h-9 w-[150px]"
+            className="h-9 w-full min-w-0 sm:w-[150px]"
             value={filtros.fim ?? ""}
             min={filtros.inicio ?? undefined}
             onChange={(e) => set("fim", e.target.value || null)}
@@ -160,13 +164,13 @@ export function BarraFiltros({
         </div>
       </div>
       {!ocultar.includes("criterio") && (
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <Label className="text-xs text-muted-foreground">Consolidar por</Label>
           <Select
             value={filtros.criterio}
             onValueChange={(v) => set("criterio", v as Filtros["criterio"])}
           >
-            <SelectTrigger className="h-9 w-[150px]">
+            <SelectTrigger className="h-9 w-full sm:w-[150px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -177,13 +181,13 @@ export function BarraFiltros({
         </div>
       )}
       {!ocultar.includes("baseCusto") && (
-        <div className="space-y-1">
+        <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
           <Label className="text-xs text-muted-foreground">Base de custo</Label>
           <Select
             value={filtros.baseCusto}
             onValueChange={(v) => set("baseCusto", v as Filtros["baseCusto"])}
           >
-            <SelectTrigger className="h-9 w-[230px]" aria-label="Base de custo">
+            <SelectTrigger className="h-9 w-full sm:w-[230px]" aria-label="Base de custo">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -230,7 +234,7 @@ export function BarraFiltros({
           value={filtros.situacao}
           onValueChange={(v) => set("situacao", v as Filtros["situacao"])}
         >
-          <SelectTrigger className="h-9 w-[150px]" aria-label="Situação da UC">
+          <SelectTrigger className="h-9 w-full sm:w-[150px]" aria-label="Situação da UC">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

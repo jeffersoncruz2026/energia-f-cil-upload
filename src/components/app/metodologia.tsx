@@ -65,7 +65,7 @@ export function BotaoMetodologia() {
           <BookOpen className="mr-1.5 h-4 w-4" /> Metodologia
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Regras de cálculo</DialogTitle>
           <DialogDescription>
