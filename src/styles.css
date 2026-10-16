@@ -165,3 +165,30 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Impressão do DANF3E ("Download fatura" → Salvar como PDF): só o documento,
+   em A4, com as cores do layout. Não afeta a impressão das demais telas. */
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+  body:has(.danf3e) * {
+    visibility: hidden;
+  }
+  body:has(.danf3e) .danf3e,
+  body:has(.danf3e) .danf3e * {
+    visibility: visible;
+  }
+  body:has(.danf3e) .danf3e {
+    position: fixed;
+    left: 0;
+    top: 0;
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body:has(.danf3e) {
+    background: white;
+  }
+}

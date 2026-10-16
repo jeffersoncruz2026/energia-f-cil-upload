@@ -22,6 +22,8 @@ Projeto conectado ao [Lovable](https://lovable.dev/projects/51e4de4a-aac7-4385-9
 | **Histórico de Importações**    | Data, usuário, arquivo, resultado, erros e avisos de cada importação.                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Configurações**               | Limites das regras de análise, campos obrigatórios do cadastro, critério padrão, usuários e perfis, registro de operações (auditoria) e metodologia.                                                                                                                                                                                                                                                                                                                                                 |
 
+**Download fatura**: lista as faturas e monta a fatura no layout da conta de energia (DANF3E — página 1) a partir do XML da NF3e guardado no sistema; “Baixar PDF” abre a impressão do navegador (Salvar como PDF, A4). Boleto/PIX e logotipo não constam no XML e não são reproduzidos; o documento traz a observação de que não substitui a fatura original.
+
 Busca global (Ctrl+K) por número da UC, fazenda, CNPJ, filial e número/chave da fatura.
 
 ### Projeto publicado × edição no Lovable

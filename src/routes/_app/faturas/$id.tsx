@@ -7,6 +7,7 @@ import {
   Banknote,
   Code2,
   Download,
+  FileDown,
   Link2,
   Loader2,
   RefreshCw,
@@ -265,6 +266,11 @@ function DetalheFatura() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => void baixarXml(false)}>
                   <Download className="mr-1.5 h-4 w-4" /> Baixar XML
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/download-fatura/$id" params={{ id: f.id }}>
+                    <FileDown className="mr-1.5 h-4 w-4" /> Baixar fatura (PDF)
+                  </Link>
                 </Button>
               </>
             )}
