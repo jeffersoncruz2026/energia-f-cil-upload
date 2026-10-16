@@ -3,13 +3,10 @@ import {
   Activity,
   Building2,
   CircleDollarSign,
-  FileStack,
   BadgePercent,
   Gauge,
   Handshake,
-  Inbox,
   PiggyBank,
-  PlugZap,
   Receipt,
   Scale,
   TrendingUp,
@@ -58,13 +55,7 @@ import {
 import { useFiltrosAnalise } from "@/lib/analise/use-filtros";
 import { ehAmbienteEdicao } from "@/lib/ambiente";
 import { useAuth } from "@/lib/auth";
-import {
-  mensagemErro,
-  useConfiguracoes,
-  useFaturasAnalise,
-  usePendentesCount,
-  useUcs,
-} from "@/lib/consultas";
+import { mensagemErro, useConfiguracoes, useFaturasAnalise, useUcs } from "@/lib/consultas";
 import {
   formatarCompetencia,
   formatarCustoKwh,
@@ -85,7 +76,6 @@ function Dashboard() {
   const faturasQ = useFaturasAnalise();
   const ucsQ = useUcs();
   const { data: cfg } = useConfiguracoes();
-  const { data: pendentes } = usePendentesCount();
   const { pode } = useAuth();
   const navigate = useNavigate();
   const [filtros, setFiltros] = useFiltrosAnalise(
@@ -138,10 +128,7 @@ function Dashboard() {
       }),
       filtros.baseCusto,
     );
-    const comDivergencia = doPeriodo.filter(
-      (f) => f.divergencias?.length > 0 || f.status_documento === "sem_protocolo",
-    ).length;
-    return { ind, doPeriodo, serie, porFazenda, porFilial, porArea, porUc, comDivergencia };
+    return { ind, doPeriodo, serie, porFazenda, porFilial, porArea, porUc };
   }, [faturas, ucs, ucsPorId, filtros]);
 
   if (faturasQ.error || ucsQ.error) {
@@ -215,139 +202,112 @@ function Dashboard() {
         <>
           <BarraFiltros filtros={filtros} aoMudar={setFiltros} ucs={ucs} />
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
-            <CartaoIndicador
-              titulo={filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado total"}
-              icone={CircleDollarSign}
-              valor={formatarMoeda(ind.custoTotal)}
-              variacao={ind.variacaoCusto}
-              detalhe={anteriorTexto}
-              ajuda={
-                filtros.baseCusto === "energia"
-                  ? "Fatura sem valor a pagar: valor faturado + créditos abatidos pela distribuidora. Fatura com valor a pagar: valor faturado. Nas UCs do Grupo BC soma-se o custo cheio do Grupo BC."
-                  : "Soma do valor líquido faturado (vNF) das faturas válidas do período. Valor faturado, não necessariamente pago."
-              }
-            />
-            <CartaoIndicador
-              titulo="Valor faturado (líquido)"
-              icone={Receipt}
-              valor={formatarMoeda(ind.valorFaturado)}
-              detalhe="efetivamente cobrado (vNF)"
-              ajuda="Valor total dos documentos, já descontados os créditos. Nas faturas com valor a pagar, o custo da energia é igual ao valor faturado. Não significa pagamento confirmado."
-            />
-            <CartaoIndicador
-              titulo="Créditos abatidos"
-              icone={PiggyBank}
-              valor={formatarMoeda(ind.creditos)}
-              detalhe={
-                ind.custoTotal > 0 && filtros.baseCusto === "energia"
-                  ? `${formatarNumero((ind.creditos / ind.custoTotal) * 100, 1)}% do custo da energia`
-                  : "compensação de geração distribuída"
-              }
-              ajuda="Créditos lançados pela distribuidora (crédito de consumo, compensação DIC/FIC) somados ao custo das faturas sem valor a pagar. Créditos de energia solar ficam na aba Energia Solar."
-            />
-            <CartaoIndicador
-              titulo="Grupo BC"
-              icone={Handshake}
-              valor={formatarMoeda(ind.grupoBc)}
-              detalhe={`${formatarKwh(ind.kwhGrupoBc)} injetados por terceiros`}
-              ajuda="Valor pago ao Grupo BC: kWh injetados (INJEÇÃO SCEE) × tarifa do consumo não compensado (com tributos) × 0,80."
-            />
-            <CartaoIndicador
-              titulo="Desconto Grupo BC"
-              icone={BadgePercent}
-              valor={formatarMoeda(ind.descontoGrupoBc)}
-              detalhe={
-                ind.custoCheioGrupoBc > 0
-                  ? `${formatarNumero((ind.descontoGrupoBc / ind.custoCheioGrupoBc) * 100, 1)}% do custo cheio`
-                  : "economia com o Grupo BC"
-              }
-              ajuda="kWh injetados × (tarifa do consumo não compensado + tarifa ADC BANDEIRA) − Valor Grupo BC."
-            />
-            <CartaoIndicador
-              titulo="Custo cheio Grupo BC"
-              icone={Scale}
-              valor={formatarMoeda(ind.custoCheioGrupoBc)}
-              detalhe="incluído no custo da energia"
-              ajuda="Valor Grupo BC + Desconto: custo da energia injetada pela tarifa cheia (consumo não compensado + bandeira). É o valor do Grupo BC somado ao custo da energia."
-            />
-            <CartaoIndicador
-              titulo="Consumo total"
-              icone={Zap}
-              valor={formatarKwh(ind.consumoTotal)}
-              variacao={ind.variacaoConsumo}
-              detalhe={anteriorTexto}
-              ajuda="Soma do consumo em kWh das faturas válidas com consumo informado."
-            />
-            <CartaoIndicador
-              titulo="Custo médio por kWh"
-              icone={Gauge}
-              valor={ind.custoKwh != null ? `R$ ${formatarNumero(ind.custoKwh, 4)}` : "—"}
-              detalhe={`por kWh · ${ind.faturasComConsumo} de ${ind.quantidadeFaturas} faturas com consumo`}
-              ajuda={`${filtros.baseCusto === "energia" ? "Custo da energia (antes dos créditos)" : "Valor faturado"} ÷ consumo, somente das faturas com consumo positivo (mesmo conjunto no numerador e denominador).`}
-            />
-            <CartaoIndicador
-              titulo="Custo médio por UC"
-              icone={Receipt}
-              valor={formatarMoeda(ind.custoMedioUc)}
-              detalhe="no período"
-              ajuda="Custo total ÷ UCs com faturas válidas no período."
-            />
-            <CartaoIndicador
-              titulo="Faturas no período"
-              icone={FileStack}
-              valor={formatarNumero(ind.quantidadeFaturas)}
-              detalhe={`${faturas.length} importada(s) no total`}
-            />
-            <CartaoIndicador
-              titulo="UCs ativas"
-              icone={Building2}
-              valor={formatarNumero(ind.ucsAtivas)}
-              detalhe="cadastradas (com filtros)"
-            />
-            <CartaoIndicador
-              titulo="UCs com faturas"
-              icone={PlugZap}
-              valor={formatarNumero(ind.ucsComFaturas)}
-              detalhe="no período"
-            />
-            <CartaoIndicador
-              titulo="Variação do custo"
-              icone={TrendingUp}
-              valor={formatarPercentual(ind.variacaoCusto)}
-              detalhe={
-                ind.anterior
-                  ? `anterior: ${formatarMoedaCompacta(ind.anterior.custoTotal)}`
-                  : "sem período anterior"
-              }
-              ajuda="(custo atual − custo do período anterior de mesma duração) ÷ custo anterior × 100."
-            />
-            <CartaoIndicador
-              titulo="Variação do consumo"
-              icone={Activity}
-              valor={formatarPercentual(ind.variacaoConsumo)}
-              detalhe={
-                ind.anterior
-                  ? `anterior: ${formatarKwh(ind.anterior.consumoTotal)}`
-                  : "sem período anterior"
-              }
-              ajuda="(consumo atual − consumo do período anterior) ÷ consumo anterior × 100."
-            />
-            <CartaoIndicador
-              titulo="Pendências"
-              icone={Inbox}
-              valor={formatarNumero((pendentes ?? 0) + analise.comDivergencia)}
-              detalhe={
-                ehAmbienteEdicao() ? (
-                  <Link to="/pendencias" className="underline-offset-2 hover:underline">
-                    {pendentes ?? 0} de identificação · {analise.comDivergencia} a validar
-                  </Link>
-                ) : (
-                  `${pendentes ?? 0} de identificação · ${analise.comDivergencia} a validar`
-                )
-              }
-              ajuda="Faturas sem UC identificada (fora dos indicadores) + faturas do período com divergência ou sem protocolo de autorização."
-            />
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+              <CartaoIndicador
+                titulo={
+                  filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado total"
+                }
+                icone={CircleDollarSign}
+                valor={formatarMoeda(ind.custoTotal)}
+                variacao={ind.variacaoCusto}
+                detalhe={anteriorTexto}
+                ajuda={
+                  filtros.baseCusto === "energia"
+                    ? "Fatura sem valor a pagar: valor faturado + créditos abatidos pela distribuidora. Fatura com valor a pagar: valor faturado. Nas UCs do Grupo BC soma-se o custo cheio do Grupo BC."
+                    : "Soma do valor líquido faturado (vNF) das faturas válidas do período. Valor faturado, não necessariamente pago."
+                }
+              />
+              <CartaoIndicador
+                titulo="Valor faturado (líquido)"
+                icone={Receipt}
+                valor={formatarMoeda(ind.valorFaturado)}
+                detalhe="efetivamente cobrado (vNF)"
+                ajuda="Valor total dos documentos, já descontados os créditos. Nas faturas com valor a pagar, o custo da energia é igual ao valor faturado. Não significa pagamento confirmado."
+              />
+              <CartaoIndicador
+                titulo="Créditos abatidos"
+                icone={PiggyBank}
+                valor={formatarMoeda(ind.creditos)}
+                detalhe={
+                  ind.custoTotal > 0 && filtros.baseCusto === "energia"
+                    ? `${formatarNumero((ind.creditos / ind.custoTotal) * 100, 1)}% do custo da energia`
+                    : "compensação de geração distribuída"
+                }
+                ajuda="Créditos lançados pela distribuidora (crédito de consumo, compensação DIC/FIC) somados ao custo das faturas sem valor a pagar. Créditos de energia solar ficam na aba Energia Solar."
+              />
+              <CartaoIndicador
+                titulo="Consumo total"
+                icone={Zap}
+                valor={formatarKwh(ind.consumoTotal)}
+                variacao={ind.variacaoConsumo}
+                detalhe={anteriorTexto}
+                ajuda="Soma do consumo em kWh das faturas válidas com consumo informado."
+              />
+              <CartaoIndicador
+                titulo="Custo médio por kWh"
+                icone={Gauge}
+                valor={ind.custoKwh != null ? `R$ ${formatarNumero(ind.custoKwh, 4)}` : "—"}
+                detalhe={`por kWh · ${ind.faturasComConsumo} de ${ind.quantidadeFaturas} faturas com consumo`}
+                ajuda={`${filtros.baseCusto === "energia" ? "Custo da energia (antes dos créditos)" : "Valor faturado"} ÷ consumo, somente das faturas com consumo positivo (mesmo conjunto no numerador e denominador).`}
+              />
+              <CartaoIndicador
+                titulo="Custo médio por UC"
+                icone={Receipt}
+                valor={formatarMoeda(ind.custoMedioUc)}
+                detalhe="no período"
+                ajuda="Custo total ÷ UCs com faturas válidas no período."
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <CartaoIndicador
+                titulo="Variação do custo"
+                icone={TrendingUp}
+                valor={formatarPercentual(ind.variacaoCusto)}
+                detalhe={
+                  ind.anterior
+                    ? `anterior: ${formatarMoedaCompacta(ind.anterior.custoTotal)}`
+                    : "sem período anterior"
+                }
+                ajuda="(custo atual − custo do período anterior de mesma duração) ÷ custo anterior × 100."
+              />
+              <CartaoIndicador
+                titulo="Variação do consumo"
+                icone={Activity}
+                valor={formatarPercentual(ind.variacaoConsumo)}
+                detalhe={
+                  ind.anterior
+                    ? `anterior: ${formatarKwh(ind.anterior.consumoTotal)}`
+                    : "sem período anterior"
+                }
+                ajuda="(consumo atual − consumo do período anterior) ÷ consumo anterior × 100."
+              />
+              <CartaoIndicador
+                titulo="Grupo BC"
+                icone={Handshake}
+                valor={formatarMoeda(ind.grupoBc)}
+                detalhe={`${formatarKwh(ind.kwhGrupoBc)} injetados por terceiros`}
+                ajuda="Valor pago ao Grupo BC: kWh injetados (INJEÇÃO SCEE) × tarifa do consumo não compensado (com tributos) × 0,80."
+              />
+              <CartaoIndicador
+                titulo="Desconto Grupo BC"
+                icone={BadgePercent}
+                valor={formatarMoeda(ind.descontoGrupoBc)}
+                detalhe={
+                  ind.custoCheioGrupoBc > 0
+                    ? `${formatarNumero((ind.descontoGrupoBc / ind.custoCheioGrupoBc) * 100, 1)}% do custo cheio`
+                    : "economia com o Grupo BC"
+                }
+                ajuda="kWh injetados × (tarifa do consumo não compensado + tarifa ADC BANDEIRA) − Valor Grupo BC."
+              />
+              <CartaoIndicador
+                titulo="Custo cheio Grupo BC"
+                icone={Scale}
+                valor={formatarMoeda(ind.custoCheioGrupoBc)}
+                detalhe="incluído no custo da energia"
+                ajuda="Valor Grupo BC + Desconto: custo da energia injetada pela tarifa cheia (consumo não compensado + bandeira). É o valor do Grupo BC somado ao custo da energia."
+              />
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
