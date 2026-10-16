@@ -56,7 +56,7 @@ import {
 import { chaveMes, somarMeses, variacaoPercentual } from "@/lib/analise/periodos";
 import { ehAmbienteEdicao } from "@/lib/ambiente";
 import { useAuth } from "@/lib/auth";
-import { buscarTodos } from "@/lib/consulta-paginada";
+import { buscarTodos, comGrupoBc } from "@/lib/consulta-paginada";
 import { CHAVES, mensagemErro, useConfiguracoes, useUcs } from "@/lib/consultas";
 import {
   formatarCnpj,
@@ -249,11 +249,13 @@ function DetalheUc() {
 
   const faturasQ = useQuery({
     queryKey: [...CHAVES.faturas, "uc", id],
-    queryFn: () =>
-      buscarTodos<FaturaUc>(supabase, "faturas", CAMPOS, {
+    queryFn: async () => {
+      const faturas = await buscarTodos<FaturaUc>(supabase, "faturas", CAMPOS, {
         unidade_consumidora_id: id,
         excluida: false,
-      }),
+      });
+      return (await comGrupoBc(supabase, faturas)).faturas;
+    },
   });
   const alertasQ = useQuery({
     queryKey: [...CHAVES.alertas, "uc", id],

@@ -14,7 +14,12 @@ import {
   type FaturaSolarEntrada,
 } from "@/lib/analise/solar";
 import type { BaseCusto, FaturaAnalise, UcAnalise } from "@/lib/analise/calculos";
-import { buscarItensGd, buscarTodos, CAMPOS_FATURA_ANALISE } from "@/lib/consulta-paginada";
+import {
+  buscarItensGd,
+  buscarTodos,
+  CAMPOS_FATURA_ANALISE,
+  comGrupoBc,
+} from "@/lib/consulta-paginada";
 import { normalizarUc } from "@/lib/documentos";
 import { CONFIG_ALERTAS_PADRAO, type ConfigAlertas } from "@/lib/tipos";
 import {
@@ -439,7 +444,7 @@ export const recalcularAlertas = createServerFn({ method: "POST" })
       const baseCusto: BaseCusto =
         config.get("consolidacao")?.["base_custo_padrao"] === "faturado" ? "faturado" : "energia";
       const alertas = [
-        ...gerarAlertas(faturas, ucs, cfg, { baseCusto }),
+        ...gerarAlertas((await comGrupoBc(supabase, faturas)).faturas, ucs, cfg, { baseCusto }),
         ...gerarAlertasSolar(montarDadosGd(faturasSolar, itensGd), ucs, cfg),
       ];
       const { data, error } = await supabase.rpc("salvar_alertas", { p_alertas: alertas });

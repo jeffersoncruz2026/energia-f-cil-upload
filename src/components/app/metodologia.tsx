@@ -22,6 +22,11 @@ export const REGRAS_CALCULO = [
       "Fatura sem valor a pagar (valor faturado zerado): custo da energia = valor total do documento (vNF) + créditos abatidos na fatura. Fatura com valor a pagar: custo da energia = valor faturado (os créditos não são somados). Créditos somados: créditos lançados pela distribuidora, como “CRÉDITO DE CONSUMO” e compensações DIC/FIC. Créditos de energia solar (injeção/compensação GD) NÃO são somados: a energia gerada pela própria usina reduz o custo e é analisada na aba Energia Solar. A energia “SCEE”/“GD” cobrada pelo preço cheio é consumo, não crédito. Créditos informados com valor positivo no XML são tratados como abatimento quando a soma dos itens só fecha com o vNF dessa forma. Assim o custo real da energia aparece mesmo quando a fatura sai com valor zero ou reduzido pelos créditos. Nos filtros é possível trocar para “Valor faturado (líquido)”, que usa apenas o vNF. Subtotais e componentes (TUSD, TE, tributos etc.) nunca são somados ao total, para não duplicar valores.",
   },
   {
+    titulo: "Grupo BC (energia injetada por terceiros)",
+    texto:
+      "Nas UCs cadastradas no Grupo BC: Valor Grupo BC = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO × 0,80. kWh injetados = quantidade das linhas “INJEÇÃO SCEE” (somadas, sem repetir a mesma energia lançada em TE e TUSD). Tarifa = preço unitário com tributos da linha “CONSUMO NÃO COMPENSADO” (sem bandeira). 0,80 = desconto de 20%. Só o resultado final é arredondado (2 casas). Sem linha INJEÇÃO SCEE, o valor é zero. O Valor Grupo BC soma ao custo da energia e também é exibido à parte (cartão e coluna “Grupo BC”).",
+  },
+  {
     titulo: "Consumo total",
     texto:
       "Soma do consumo em kWh das faturas válidas com consumo disponível. O consumo vem dos itens faturados de energia ativa (sem somar duas vezes a mesma energia cobrada em TUSD e TE); na ausência deles, da medição. Energia injetada/compensada é informada à parte.",

@@ -5,7 +5,7 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 import type { BaseCusto, FaturaAnalise } from "./analise/calculos";
-import { buscarTodos, CAMPOS_FATURA_ANALISE } from "./consulta-paginada";
+import { buscarTodos, CAMPOS_FATURA_ANALISE, comGrupoBc } from "./consulta-paginada";
 import {
   CONFIG_ALERTAS_PADRAO,
   CONFIG_CADASTRO_PADRAO,
@@ -50,8 +50,13 @@ export function useUcs() {
 export function useFaturasAnalise() {
   return useQuery({
     queryKey: CHAVES.faturasAnalise,
-    queryFn: () =>
-      buscarTodos<FaturaAnalise>(supabase, "faturas", CAMPOS_FATURA_ANALISE, { excluida: false }),
+    queryFn: async () => {
+      const faturas = await buscarTodos<FaturaAnalise>(supabase, "faturas", CAMPOS_FATURA_ANALISE, {
+        excluida: false,
+      });
+      // Valor Grupo BC (UCs do Grupo BC) — soma ao custo da energia.
+      return (await comGrupoBc(supabase, faturas)).faturas;
+    },
   });
 }
 

@@ -2,13 +2,20 @@
 // ou projeto publicado para os usuários.
 //
 // No projeto publicado aparecem apenas as guias de consulta (Dashboard, Faturas,
-// Energia Solar, Análises e Alertas, Relatórios). Cadastro de UCs, importação de
-// XML, pendências, histórico e configurações ficam só no ambiente de edição.
+// Energia Solar, Análises e Alertas, Relatórios). Cadastro de UCs, Grupo BC,
+// importação de XML, pendências, histórico e configurações ficam só na edição.
 // Isto organiza a navegação; o controle de acesso aos dados continua sendo feito
 // pelos perfis (RLS e permissões no banco).
 
 /** Rotas de administração disponíveis apenas no ambiente de edição. */
-const ROTAS_SO_EDICAO = ["/unidades", "/importar", "/pendencias", "/historico", "/configuracoes"];
+const ROTAS_SO_EDICAO = [
+  "/unidades",
+  "/importar",
+  "/grupo-bc",
+  "/pendencias",
+  "/historico",
+  "/configuracoes",
+];
 
 /** Detalhe da UC (/unidades/:id) segue disponível como análise a partir dos gráficos. */
 const DETALHE_UC = /^\/unidades\/[^/]+$/;

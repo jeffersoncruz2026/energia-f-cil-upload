@@ -583,6 +583,7 @@ export type Database = {
           endereco: string | null
           fazenda: string
           filial: string | null
+          grupo_bc: boolean
           id: string
           numero_uc: string
           numero_uc_normalizado: string | null
@@ -599,6 +600,7 @@ export type Database = {
           endereco?: string | null
           fazenda: string
           filial?: string | null
+          grupo_bc?: boolean
           id?: string
           numero_uc: string
           numero_uc_normalizado?: string | null
@@ -615,6 +617,7 @@ export type Database = {
           endereco?: string | null
           fazenda?: string
           filial?: string | null
+          grupo_bc?: boolean
           id?: string
           numero_uc?: string
           numero_uc_normalizado?: string | null
