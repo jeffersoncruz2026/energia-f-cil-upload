@@ -231,7 +231,8 @@ function PaginaGrupoBc() {
       celula: (u) => (
         <Switch
           checked={u.grupoBc}
-          disabled={!podeEditar || salvando === u.numero}
+          disabled={!podeEditar || salvando === u.numero || !!u.ucPropria}
+          title={u.ucPropria ? "UC cadastrada é própria: sempre fora do Grupo BC" : undefined}
           onCheckedChange={(v) => void alterarUsina(u.numeroOriginal, v, u.automatico)}
           aria-label={`Grupo BC — usina ${u.numeroOriginal}`}
         />

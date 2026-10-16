@@ -282,6 +282,8 @@ export interface RegraGrupoBc {
  * grupo_bc. Só valem as exceções "incluir"/"excluir"; o cadastro manual antigo
  * ("geradoras", anterior à regra automática) é ignorado — terceiros já entram
  * automaticamente e esse cadastro podia forçar UCs próprias no Grupo BC.
+ * UC cadastrada é sempre própria: "incluir" não vale para ela (exceções antigas
+ * migradas do cadastro manual inflavam o Grupo BC das filiais).
  */
 export function regraGrupoBc(numerosUc: Iterable<string>, valorConfig: unknown): RegraGrupoBc {
   const lista = (chave: string) => {
@@ -290,9 +292,10 @@ export function regraGrupoBc(numerosUc: Iterable<string>, valorConfig: unknown):
       (Array.isArray(l) ? l : []).map((g) => normalizarNumeroUc(String(g))).filter(Boolean),
     );
   };
+  const proprias = new Set([...numerosUc].map(normalizarNumeroUc).filter(Boolean));
   return {
-    proprias: new Set([...numerosUc].map(normalizarNumeroUc).filter(Boolean)),
-    incluir: lista("incluir"),
+    proprias,
+    incluir: new Set([...lista("incluir")].filter((n) => !proprias.has(n))),
     excluir: lista("excluir"),
   };
 }
