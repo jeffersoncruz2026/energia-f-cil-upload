@@ -10,6 +10,7 @@ import {
   normalizarNumeroUc,
   classificarUsina,
   type ItemGrupoBc,
+  regraGrupoBc,
   type RegraGrupoBc,
   usinasGrupoBc,
 } from "./grupo-bc";
@@ -250,6 +251,34 @@ describe("Grupo BC", () => {
         motivo: "excluida_manual",
         automatico: true,
       });
+    });
+  });
+
+  describe("configuração grupo_bc", () => {
+    const itensReais = [
+      item("CONSUMO NÃO COMPENSADO", 30.0021, { valor_unitario: 1.125925, valor_total: 33.78 }),
+      item("INJEÇÃO SCEE - UC 000128066501220 - GD I", 4.2, { valor_total: 3.25 }),
+      item("INJEÇÃO SCEE - UC 000405731001244 - GD I", 486.7079, { valor_total: 376.69 }),
+    ];
+    const ucs = ["000172458701255", "000128066501220"];
+
+    it("ignora o cadastro manual antigo (geradoras) que forçava a UC própria", () => {
+      // estado encontrado em produção: as duas usinas no cadastro manual antigo
+      const regra = regraGrupoBc(ucs, { geradoras: ["000128066501220", "000405731001244"] });
+      const geradoras = usinasGrupoBc(itensReais, regra);
+      expect([...geradoras]).toEqual(["405731001244"]);
+      expect(classificarUsina("000128066501220", regra).motivo).toBe("propria");
+      expect(calcularGrupoBc(itensReais, geradoras)).toMatchObject({
+        valor: 438.4,
+        desconto: 109.6,
+        custoCheio: 548,
+      });
+    });
+
+    it("exceções novas (incluir/excluir) continuam valendo", () => {
+      const regra = regraGrupoBc(ucs, { incluir: ["000128066501220"], excluir: [] });
+      expect(classificarUsina("000128066501220", regra).motivo).toBe("incluida_manual");
+      expect(regraGrupoBc(ucs, null).incluir.size).toBe(0);
     });
   });
 });
