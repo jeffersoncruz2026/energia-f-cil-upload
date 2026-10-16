@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppAlertasRouteImport } from './routes/_app/alertas'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppGrupoBcRouteImport } from './routes/_app/grupo-bc'
 import { Route as AppHistoricoRouteImport } from './routes/_app/historico'
 import { Route as AppImportarRouteImport } from './routes/_app/importar'
 import { Route as AppPendenciasRouteImport } from './routes/_app/pendencias'
@@ -52,6 +53,11 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGrupoBcRoute = AppGrupoBcRouteImport.update({
+  id: '/grupo-bc',
+  path: '/grupo-bc',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHistoricoRoute = AppHistoricoRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/alertas': typeof AppAlertasRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/dashboard': typeof AppDashboardRoute
+  '/grupo-bc': typeof AppGrupoBcRoute
   '/historico': typeof AppHistoricoRoute
   '/importar': typeof AppImportarRoute
   '/pendencias': typeof AppPendenciasRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/alertas': typeof AppAlertasRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/dashboard': typeof AppDashboardRoute
+  '/grupo-bc': typeof AppGrupoBcRoute
   '/historico': typeof AppHistoricoRoute
   '/importar': typeof AppImportarRoute
   '/pendencias': typeof AppPendenciasRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/_app/alertas': typeof AppAlertasRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/grupo-bc': typeof AppGrupoBcRoute
   '/_app/historico': typeof AppHistoricoRoute
   '/_app/importar': typeof AppImportarRoute
   '/_app/pendencias': typeof AppPendenciasRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/configuracoes'
     | '/dashboard'
+    | '/grupo-bc'
     | '/historico'
     | '/importar'
     | '/pendencias'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/alertas'
     | '/configuracoes'
     | '/dashboard'
+    | '/grupo-bc'
     | '/historico'
     | '/importar'
     | '/pendencias'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/_app/alertas'
     | '/_app/configuracoes'
     | '/_app/dashboard'
+    | '/_app/grupo-bc'
     | '/_app/historico'
     | '/_app/importar'
     | '/_app/pendencias'
@@ -250,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/grupo-bc': {
+      id: '/_app/grupo-bc'
+      path: '/grupo-bc'
+      fullPath: '/grupo-bc'
+      preLoaderRoute: typeof AppGrupoBcRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/historico': {
@@ -322,6 +341,7 @@ interface AppRouteChildren {
   AppAlertasRoute: typeof AppAlertasRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppGrupoBcRoute: typeof AppGrupoBcRoute
   AppHistoricoRoute: typeof AppHistoricoRoute
   AppImportarRoute: typeof AppImportarRoute
   AppPendenciasRoute: typeof AppPendenciasRoute
@@ -337,6 +357,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlertasRoute: AppAlertasRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppGrupoBcRoute: AppGrupoBcRoute,
   AppHistoricoRoute: AppHistoricoRoute,
   AppImportarRoute: AppImportarRoute,
   AppPendenciasRoute: AppPendenciasRoute,

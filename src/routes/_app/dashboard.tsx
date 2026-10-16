@@ -5,6 +5,7 @@ import {
   CircleDollarSign,
   FileStack,
   Gauge,
+  Handshake,
   Inbox,
   PiggyBank,
   PlugZap,
@@ -221,7 +222,7 @@ function Dashboard() {
               detalhe={anteriorTexto}
               ajuda={
                 filtros.baseCusto === "energia"
-                  ? "Custo da energia antes da compensação de créditos de geração distribuída: valor faturado + créditos abatidos. Vale também para faturas que saíram com valor zero."
+                  ? "Fatura sem valor a pagar: valor faturado + créditos abatidos pela distribuidora. Fatura com valor a pagar: valor faturado. Nas UCs do Grupo BC soma-se o Valor Grupo BC."
                   : "Soma do valor líquido faturado (vNF) das faturas válidas do período. Valor faturado, não necessariamente pago."
               }
             />
@@ -241,7 +242,14 @@ function Dashboard() {
                   ? `${formatarNumero((ind.creditos / ind.custoTotal) * 100, 1)}% do custo da energia`
                   : "compensação de geração distribuída"
               }
-              ajuda="Valores dos itens de energia injetada/compensada abatidos nas faturas."
+              ajuda="Créditos lançados pela distribuidora (crédito de consumo, compensação DIC/FIC) somados ao custo das faturas sem valor a pagar. Créditos de energia solar ficam na aba Energia Solar."
+            />
+            <CartaoIndicador
+              titulo="Grupo BC"
+              icone={Handshake}
+              valor={formatarMoeda(ind.grupoBc)}
+              detalhe={`${formatarKwh(ind.kwhGrupoBc)} injetados por terceiros`}
+              ajuda="UCs do Grupo BC: kWh injetados (INJEÇÃO SCEE) × tarifa do consumo não compensado (com tributos) × 0,80. Incluído no custo da energia."
             />
             <CartaoIndicador
               titulo="Consumo total"
@@ -498,6 +506,7 @@ function Dashboard() {
                   tipo: "moeda",
                   valor: (p) => p.creditos,
                 },
+                { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (p) => p.grupoBc },
                 { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (p) => p.consumo },
                 { id: "kwh", titulo: "R$/kWh", tipo: "decimal4", valor: (p) => p.custoKwh },
                 { id: "faturas", titulo: "Faturas", tipo: "numero", valor: (p) => p.faturas },
@@ -557,6 +566,7 @@ function DetalheMes({
       tipo: "moeda",
       valor: (f) => creditosDaFatura(f) || null,
     },
+    { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (f) => f.valor_grupo_bc ?? null },
     { id: "consumo", titulo: "Consumo", tipo: "kwh", valor: (f) => f.consumo_kwh },
     {
       id: "kwh",

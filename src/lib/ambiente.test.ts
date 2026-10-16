@@ -22,7 +22,14 @@ describe("ambiente de edição × publicado", () => {
   });
 
   it("só as guias de consulta ficam no publicado", () => {
-    for (const r of ["/unidades", "/importar", "/pendencias", "/historico", "/configuracoes"]) {
+    for (const r of [
+      "/unidades",
+      "/importar",
+      "/grupo-bc",
+      "/pendencias",
+      "/historico",
+      "/configuracoes",
+    ]) {
       expect(rotaSoEdicao(r), r).toBe(true);
     }
     for (const r of [

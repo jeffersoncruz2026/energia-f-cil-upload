@@ -129,6 +129,7 @@ interface LinhaGrupo {
   custo: number;
   valorFaturado: number;
   creditos: number;
+  grupoBc: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -252,6 +253,7 @@ function PaginaRelatorios() {
     },
     { id: "faturado", titulo: "Valor faturado", tipo: "moeda", valor: (l) => l.valorFaturado },
     { id: "creditos", titulo: "Créditos abatidos", tipo: "moeda", valor: (l) => l.creditos },
+    { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (l) => l.grupoBc },
     {
       id: "participacao",
       titulo: "Participação",
@@ -391,6 +393,7 @@ function PaginaRelatorios() {
               tipo: "moeda",
               valor: (l) => l.creditos,
             },
+            { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (l) => l.grupoBc },
             {
               id: "custo",
               titulo: filtros.baseCusto === "energia" ? "Custo da energia" : "Valor faturado",
@@ -437,6 +440,7 @@ function PaginaRelatorios() {
               tipo: "moeda",
               valor: (p) => p.creditos,
             },
+            { id: "grupoBc", titulo: "Grupo BC", tipo: "moeda", valor: (p) => p.grupoBc },
             { id: "varCusto", titulo: "Var. custo", tipo: "percentual", valor: (p) => p.varCusto },
             { id: "consumo", titulo: "Consumo (kWh)", tipo: "kwh", valor: (p) => p.consumo },
             {

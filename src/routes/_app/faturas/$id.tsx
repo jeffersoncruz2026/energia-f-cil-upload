@@ -43,6 +43,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_XML } from "@/lib/configuracao-backend";
 import { creditosDaFatura, creditosNoDocumento, custoDaFatura } from "@/lib/analise/calculos";
+import { calcularGrupoBc } from "@/lib/analise/grupo-bc";
+import { buscarUcsGrupoBc } from "@/lib/consulta-paginada";
 import { useAuth } from "@/lib/auth";
 import { CHAVES, invalidarDados, mensagemErro } from "@/lib/consultas";
 import {
@@ -100,7 +102,19 @@ function DetalheFatura() {
       ]);
       if (f.error) throw f.error;
       if (i.error) throw i.error;
-      return { fatura: f.data as FaturaDetalhe | null, itens: (i.data ?? []) as ItemFatura[] };
+      const fatura = f.data as FaturaDetalhe | null;
+      const itens = (i.data ?? []) as ItemFatura[];
+      // Grupo BC: calculado a partir dos itens quando a UC está cadastrada no grupo.
+      const ucsBc = await buscarUcsGrupoBc(supabase);
+      const grupoBc =
+        fatura?.unidade_consumidora_id && ucsBc.has(fatura.unidade_consumidora_id)
+          ? calcularGrupoBc(itens.map((it) => ({ ...it, fatura_id: id })))
+          : null;
+      return {
+        fatura: fatura ? { ...fatura, valor_grupo_bc: grupoBc?.valor ?? null } : null,
+        itens,
+        grupoBc,
+      };
     },
   });
 
@@ -529,6 +543,18 @@ function DetalheFatura() {
                   {formatarMoeda(creditosDaFatura(f) ? -creditosDaFatura(f) : 0)}
                 </span>
               </div>
+              {consulta.data?.grupoBc && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>
+                    (+) Grupo BC ({formatarKwh(consulta.data.grupoBc.kwhInjetados)} ×{" "}
+                    {consulta.data.grupoBc.tarifa != null
+                      ? `R$ ${formatarNumero(consulta.data.grupoBc.tarifa, 6)}`
+                      : "tarifa indisponível"}{" "}
+                    × 0,80)
+                  </span>
+                  <span className="tabular">{formatarMoeda(consulta.data.grupoBc.valor)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm font-medium">
                 <span>Valor faturado (total do documento)</span>
                 <span className="tabular">{formatarMoeda(f.valor_total)}</span>

@@ -4,7 +4,7 @@ import { BadgeStatusDocumento, BadgeStatusProcessamento } from "@/components/app
 import type { Coluna } from "@/components/app/tabela-dados";
 import { supabase } from "@/integrations/supabase/client";
 import { creditosDaFatura, custoDaFatura } from "@/lib/analise/calculos";
-import { buscarTodos } from "@/lib/consulta-paginada";
+import { buscarTodos, comGrupoBc } from "@/lib/consulta-paginada";
 import { CHAVES } from "@/lib/consultas";
 import { formatarCnpj } from "@/lib/formatacao";
 import type { Fatura } from "@/lib/tipos";
@@ -17,6 +17,9 @@ export type FaturaLista = Omit<Fatura, "dados_extraidos_json"> & {
     area: string | null;
     cnpj: string;
   } | null;
+  /** Valor Grupo BC (só nas UCs do Grupo BC); soma ao custo da energia. */
+  valor_grupo_bc?: number | null;
+  kwh_grupo_bc?: number | null;
 };
 
 export const CAMPOS_LISTA = [
@@ -75,7 +78,13 @@ export const CAMPOS_LISTA = [
 export function useFaturasLista() {
   return useQuery({
     queryKey: [...CHAVES.faturas, "lista"],
-    queryFn: () => buscarTodos<FaturaLista>(supabase, "faturas", CAMPOS_LISTA),
+    queryFn: async () =>
+      (
+        await comGrupoBc(
+          supabase,
+          await buscarTodos<FaturaLista>(supabase, "faturas", CAMPOS_LISTA),
+        )
+      ).faturas,
   });
 }
 
@@ -126,6 +135,12 @@ export function colunasFatura(): Coluna<FaturaLista>[] {
       titulo: "Créditos abatidos",
       tipo: "moeda",
       valor: (f) => creditosDaFatura(f) || null,
+    },
+    {
+      id: "grupoBc",
+      titulo: "Grupo BC",
+      tipo: "moeda",
+      valor: (f) => f.valor_grupo_bc ?? null,
     },
     { id: "valor", titulo: "Valor faturado", tipo: "moeda", valor: (f) => f.valor_total },
     { id: "icms", titulo: "ICMS", tipo: "moeda", valor: (f) => f.valor_icms, oculta: true },

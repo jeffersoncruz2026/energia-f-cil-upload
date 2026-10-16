@@ -17,6 +17,8 @@ export interface UnidadeConsumidora {
   endereco: string | null;
   filial: string | null;
   area: string | null;
+  /** UC que recebe energia injetada por terceiros (Grupo BC). */
+  grupo_bc?: boolean;
   situacao: SituacaoUc;
   observacoes: string | null;
   created_at: string;

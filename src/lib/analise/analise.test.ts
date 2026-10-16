@@ -205,6 +205,30 @@ describe("custo da energia antes dos créditos", () => {
     expect(totais.creditos).toBe(1358.72);
   });
 
+  it("Valor Grupo BC soma ao custo da energia e aparece em total próprio", () => {
+    expect(
+      custoDaFatura({ valor_total: 500, valor_compensacao: null, valor_grupo_bc: 69.45 }),
+    ).toBe(569.45);
+    expect(
+      custoDaFatura(
+        { valor_total: 500, valor_compensacao: null, valor_grupo_bc: 69.45 },
+        "faturado",
+      ),
+    ).toBe(500);
+    const totais = calcularIndicadores(
+      [
+        fatura({ valor_total: 500, valor_grupo_bc: 69.45, kwh_grupo_bc: 73.9, consumo_kwh: 400 }),
+        fatura({ valor_total: 300, unidade_consumidora_id: "uc2", consumo_kwh: 200 }),
+      ],
+      ucs,
+      { ...FILTROS_VAZIOS, inicio: "2026-01", fim: "2026-01" },
+    );
+    expect(totais.custoTotal).toBe(869.45);
+    expect(totais.valorFaturado).toBe(800);
+    expect(totais.grupoBc).toBe(69.45);
+    expect(totais.kwhGrupoBc).toBe(73.9);
+  });
+
   it("indicadores, série e agrupamentos usam a base escolhida", () => {
     const faturas = [
       fatura({ valor_total: 0, valor_compensacao: -1000, consumo_kwh: 1250 }),

@@ -8,6 +8,8 @@
 //    + créditos de geração distribuída abatidos na fatura, ou seja, o custo da
 //    energia ANTES da compensação. Alternativamente, base "valor faturado" (vNF).
 //    Subtotais/componentes nunca são somados junto com o total.
+//  - Grupo BC: nas UCs cadastradas, o Valor Grupo BC (kWh injetados × tarifa do
+//    consumo não compensado × 0,80) soma ao custo da energia.
 //  - Consumo total: soma do consumo em kWh das faturas válidas com consumo
 //    disponível.
 //  - Custo médio por UC: custo total ÷ quantidade de UCs com faturas válidas no período.
@@ -56,7 +58,12 @@ export type FaturaAnalise = Pick<
   | "demanda_contratada_kw"
   | "demanda_faturada_kw"
   | "divergencias"
->;
+> & {
+  /** Valor Grupo BC (energia injetada por terceiros) — só nas UCs do Grupo BC. */
+  valor_grupo_bc?: number | null;
+  /** kWh injetados considerados no Grupo BC. */
+  kwh_grupo_bc?: number | null;
+};
 
 export type UcAnalise = Pick<
   UnidadeConsumidora,
@@ -124,14 +131,22 @@ export function creditosDaFatura(
   return faturaSemValorAPagar(f) ? creditosNoDocumento(f) : 0;
 }
 
-/** Custo da fatura conforme a base escolhida (null quando o valor total é indisponível). */
+/** Valor Grupo BC da fatura (0 quando a UC não é do Grupo BC ou não há injeção). */
+export function grupoBcDaFatura(f: Pick<FaturaAnalise, "valor_grupo_bc">): number {
+  return f.valor_grupo_bc ?? 0;
+}
+
+/**
+ * Custo da fatura conforme a base escolhida (null quando o valor total é indisponível).
+ * Base "energia": regra dos créditos + Valor Grupo BC. Base "faturado": só o vNF.
+ */
 export function custoDaFatura(
-  f: Pick<FaturaAnalise, "valor_total" | "valor_compensacao">,
+  f: Pick<FaturaAnalise, "valor_total" | "valor_compensacao" | "valor_grupo_bc">,
   base: BaseCusto = "energia",
 ): number | null {
   if (f.valor_total == null) return null;
   if (base === "faturado") return f.valor_total;
-  return Math.round((f.valor_total + creditosDaFatura(f)) * 100) / 100;
+  return Math.round((f.valor_total + creditosDaFatura(f) + grupoBcDaFatura(f)) * 100) / 100;
 }
 
 export function faturaValida(
@@ -193,6 +208,10 @@ export interface Totais {
   valorFaturado: number;
   /** Créditos de energia abatidos nas faturas (R$). */
   creditos: number;
+  /** Valor Grupo BC (energia injetada por terceiros), incluído no custo da energia. */
+  grupoBc: number;
+  /** kWh injetados considerados no Grupo BC. */
+  kwhGrupoBc: number;
   consumoTotal: number;
   quantidadeFaturas: number;
   faturasComConsumo: number;
@@ -207,6 +226,8 @@ export function calcularTotais(faturas: FaturaAnalise[], base: BaseCusto = "ener
   let custoTotal = 0;
   let valorFaturado = 0;
   let creditos = 0;
+  let grupoBc = 0;
+  let kwhGrupoBc = 0;
   let consumoTotal = 0;
   let custoBase = 0;
   let consumoBase = 0;
@@ -217,6 +238,8 @@ export function calcularTotais(faturas: FaturaAnalise[], base: BaseCusto = "ener
     custoTotal += custo ?? 0;
     valorFaturado += f.valor_total ?? 0;
     creditos += creditosDaFatura(f);
+    grupoBc += grupoBcDaFatura(f);
+    kwhGrupoBc += f.kwh_grupo_bc ?? 0;
     if (f.consumo_kwh != null) consumoTotal += f.consumo_kwh;
     if (f.consumo_kwh != null && f.consumo_kwh > 0 && custo != null) {
       custoBase += custo;
@@ -229,6 +252,8 @@ export function calcularTotais(faturas: FaturaAnalise[], base: BaseCusto = "ener
     custoTotal: arred2(custoTotal),
     valorFaturado: arred2(valorFaturado),
     creditos: arred2(creditos),
+    grupoBc: arred2(grupoBc),
+    kwhGrupoBc: arred3(kwhGrupoBc),
     consumoTotal: arred3(consumoTotal),
     quantidadeFaturas: faturas.length,
     faturasComConsumo: comConsumo,
@@ -312,6 +337,7 @@ export interface PontoMensal {
   custo: number;
   valorFaturado: number;
   creditos: number;
+  grupoBc: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -342,6 +368,7 @@ export function serieMensal(
       custo: t.custoTotal,
       valorFaturado: t.valorFaturado,
       creditos: t.creditos,
+      grupoBc: t.grupoBc,
       consumo: t.consumoTotal,
       custoKwh: t.custoKwh,
       faturas: t.quantidadeFaturas,
@@ -356,6 +383,7 @@ export interface Agrupado {
   custo: number;
   valorFaturado: number;
   creditos: number;
+  grupoBc: number;
   consumo: number;
   custoKwh: number | null;
   faturas: number;
@@ -386,6 +414,7 @@ export function agruparPor(
         custo: t.custoTotal,
         valorFaturado: t.valorFaturado,
         creditos: t.creditos,
+        grupoBc: t.grupoBc,
         consumo: t.consumoTotal,
         custoKwh: t.custoKwh,
         faturas: t.quantidadeFaturas,
