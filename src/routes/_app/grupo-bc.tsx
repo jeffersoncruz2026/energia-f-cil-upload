@@ -68,7 +68,7 @@ interface Excecoes {
   excluir: string[];
 }
 
-/** Exceções manuais (o formato anterior "geradoras" conta como incluir). */
+/** Exceções manuais (o cadastro manual antigo "geradoras" é ignorado e some ao salvar). */
 async function lerExcecoes(): Promise<Excecoes> {
   const { data, error } = await supabase
     .from("configuracoes")
@@ -78,7 +78,7 @@ async function lerExcecoes(): Promise<Excecoes> {
   if (error) throw error;
   const v = (data?.valor ?? {}) as Record<string, unknown>;
   const lista = (k: string) => (Array.isArray(v[k]) ? (v[k] as unknown[]).map(String) : []);
-  return { incluir: [...lista("geradoras"), ...lista("incluir")], excluir: lista("excluir") };
+  return { incluir: lista("incluir"), excluir: lista("excluir") };
 }
 
 async function salvarExcecoes(e: Excecoes) {

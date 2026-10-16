@@ -277,6 +277,26 @@ export interface RegraGrupoBc {
   excluir: Set<string>;
 }
 
+/**
+ * Monta a regra a partir dos números das UCs cadastradas e da configuração
+ * grupo_bc. Só valem as exceções "incluir"/"excluir"; o cadastro manual antigo
+ * ("geradoras", anterior à regra automática) é ignorado — terceiros já entram
+ * automaticamente e esse cadastro podia forçar UCs próprias no Grupo BC.
+ */
+export function regraGrupoBc(numerosUc: Iterable<string>, valorConfig: unknown): RegraGrupoBc {
+  const lista = (chave: string) => {
+    const l = (valorConfig as Record<string, unknown> | null)?.[chave];
+    return new Set(
+      (Array.isArray(l) ? l : []).map((g) => normalizarNumeroUc(String(g))).filter(Boolean),
+    );
+  };
+  return {
+    proprias: new Set([...numerosUc].map(normalizarNumeroUc).filter(Boolean)),
+    incluir: lista("incluir"),
+    excluir: lista("excluir"),
+  };
+}
+
 export type MotivoUsina = "terceiro" | "propria" | "incluida_manual" | "excluida_manual";
 
 export function classificarUsina(

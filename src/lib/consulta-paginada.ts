@@ -8,6 +8,7 @@ import {
   faturasComInjecaoGrupoBc,
   FILTRO_ITENS_GRUPO_BC,
   normalizarNumeroUc,
+  regraGrupoBc,
   type RegraGrupoBc,
   usinasGrupoBc,
   type ItemGrupoBc,
@@ -97,14 +98,6 @@ export async function buscarItensGd(cliente: SupabaseClient) {
   return resultado;
 }
 
-/** Lista de números da configuração grupo_bc (exceções manuais). */
-function listaConfig(valor: unknown, chave: string): Set<string> {
-  const lista = (valor as Record<string, unknown> | null)?.[chave];
-  return new Set(
-    (Array.isArray(lista) ? lista : []).map((g) => normalizarNumeroUc(String(g))).filter(Boolean),
-  );
-}
-
 /**
  * Regra do Grupo BC: UCs cadastradas (energia própria) e exceções manuais.
  * Sem a configuração no banco, as exceções ficam vazias e vale só o automático.
@@ -114,13 +107,10 @@ export async function buscarRegraGrupoBc(cliente: SupabaseClient): Promise<Regra
     buscarTodos<{ numero_uc: string }>(cliente, "unidades_consumidoras", "numero_uc"),
     cliente.from("configuracoes").select("valor").eq("chave", "grupo_bc").maybeSingle(),
   ]);
-  const valor = cfg.error ? null : (cfg.data?.valor ?? null);
-  return {
-    proprias: new Set(ucs.map((u) => normalizarNumeroUc(u.numero_uc)).filter(Boolean)),
-    // "geradoras" = formato anterior (usinas cadastradas manualmente) → incluir
-    incluir: new Set([...listaConfig(valor, "geradoras"), ...listaConfig(valor, "incluir")]),
-    excluir: listaConfig(valor, "excluir"),
-  };
+  return regraGrupoBc(
+    ucs.map((u) => u.numero_uc),
+    cfg.error ? null : (cfg.data?.valor ?? null),
+  );
 }
 
 /** Linhas "INJEÇÃO SCEE" de todas as faturas (para achar as usinas e as faturas do Grupo BC). */
