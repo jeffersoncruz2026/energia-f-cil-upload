@@ -8,7 +8,10 @@ import {
   geradoraDaLinha,
   geradorasEncontradas,
   normalizarNumeroUc,
+  classificarUsina,
   type ItemGrupoBc,
+  type RegraGrupoBc,
+  usinasGrupoBc,
 } from "./grupo-bc";
 
 const item = (descricao: string, quantidade: number, extra: Partial<ItemGrupoBc> = {}) => ({
@@ -196,5 +199,57 @@ describe("Grupo BC", () => {
       kwh_grupo_bc: 73.9,
     });
     expect(b!.custo_cheio_grupo_bc).toBeNull();
+  });
+
+  describe("regra automática (usina que não é UC cadastrada = terceiro)", () => {
+    const itensReais = [
+      item("CONSUMO NÃO COMPENSADO", 30.0021, { valor_unitario: 1.125925, valor_total: 33.78 }),
+      item("CONSUMO SCEE", 490.9079, { valor_unitario: 0.77396, valor_total: 379.94 }),
+      item("INJEÇÃO SCEE - UC 000128066501220 - GD I", 4.2, { valor_total: 3.25 }),
+      item("INJEÇÃO SCEE - UC 000405731001244 - GD I", 486.7079, { valor_total: 376.69 }),
+    ];
+    const regraBase = (): RegraGrupoBc => ({
+      // UCs cadastradas: a consumidora e a Fábrica de Ração (geradora própria)
+      proprias: new Set(["172458701255", "128066501220"]),
+      incluir: new Set(),
+      excluir: new Set(),
+    });
+
+    it("caso real sem cadastrar usina: 438,40 + 109,60 = 548,00", () => {
+      const geradoras = usinasGrupoBc(itensReais, regraBase());
+      expect([...geradoras]).toEqual(["405731001244"]);
+      expect(calcularGrupoBc(itensReais, geradoras)).toMatchObject({
+        valor: 438.4,
+        desconto: 109.6,
+        custoCheio: 548,
+      });
+    });
+
+    it("exceções: excluir tira um terceiro; incluir coloca uma UC própria", () => {
+      const r = regraBase();
+      r.excluir.add("405731001244");
+      expect(usinasGrupoBc(itensReais, r).size).toBe(0);
+      r.incluir.add("128066501220");
+      expect([...usinasGrupoBc(itensReais, r)]).toEqual(["128066501220"]);
+    });
+
+    it("classifica a usina com o motivo", () => {
+      const r = regraBase();
+      expect(classificarUsina("000405731001244", r)).toEqual({
+        grupoBc: true,
+        motivo: "terceiro",
+        automatico: true,
+      });
+      expect(classificarUsina("000128066501220", r)).toMatchObject({
+        grupoBc: false,
+        motivo: "propria",
+      });
+      r.excluir.add("405731001244");
+      expect(classificarUsina("405731001244", r)).toMatchObject({
+        grupoBc: false,
+        motivo: "excluida_manual",
+        automatico: true,
+      });
+    });
   });
 });

@@ -1,6 +1,7 @@
-// Grupo BC: energia injetada por terceiros — usinas (UCs geradoras) cadastradas
-// como Grupo BC. Só entram as linhas "INJEÇÃO SCEE – UC <geradora do Grupo BC>";
-// injeções de outras geradoras (ex.: outra UC da própria fazenda) ficam de fora.
+// Grupo BC: energia injetada por terceiros. Automático: entram as linhas
+// "INJEÇÃO SCEE – UC <geradora>" cuja geradora NÃO é UC cadastrada no sistema
+// (usina de terceiro); injeções de UCs cadastradas (energia própria) ficam de
+// fora. Exceções manuais (incluir/excluir) na guia Grupo BC.
 //
 //   Valor Grupo BC = kWh injetados × tarifa do CONSUMO NÃO COMPENSADO × 0,80
 //   Desconto       = kWh injetados × (tarifa CONSUMO NÃO COMPENSADO + tarifa ADC
@@ -262,6 +263,48 @@ export function geradorasEncontradas(itens: ItemGrupoBc[]): GeradoraEncontrada[]
 }
 
 /** Campos do Grupo BC acrescentados às faturas das UCs do grupo. */
+/**
+ * Regra para saber se uma usina é do Grupo BC (energia de terceiros):
+ * automática — usina que NÃO é UC cadastrada no sistema é terceiro (Grupo BC);
+ * UC cadastrada é energia própria. Exceções manuais: incluir / excluir.
+ */
+export interface RegraGrupoBc {
+  /** UCs cadastradas no sistema (normalizadas). */
+  proprias: Set<string>;
+  /** Usinas forçadas no Grupo BC (normalizadas). */
+  incluir: Set<string>;
+  /** Usinas forçadas fora do Grupo BC (normalizadas). */
+  excluir: Set<string>;
+}
+
+export type MotivoUsina = "terceiro" | "propria" | "incluida_manual" | "excluida_manual";
+
+export function classificarUsina(
+  numero: string,
+  regra: RegraGrupoBc,
+): { grupoBc: boolean; motivo: MotivoUsina; automatico: boolean } {
+  const n = normalizarNumeroUc(numero);
+  const automatico = !regra.proprias.has(n);
+  if (regra.incluir.has(n)) return { grupoBc: true, motivo: "incluida_manual", automatico };
+  if (regra.excluir.has(n)) return { grupoBc: false, motivo: "excluida_manual", automatico };
+  return { grupoBc: automatico, motivo: automatico ? "terceiro" : "propria", automatico };
+}
+
+export function ehUsinaGrupoBc(numero: string, regra: RegraGrupoBc): boolean {
+  return classificarUsina(numero, regra).grupoBc;
+}
+
+/** Usinas do Grupo BC entre as geradoras citadas nas linhas de injeção. */
+export function usinasGrupoBc(itens: ItemGrupoBc[], regra: RegraGrupoBc): Set<string> {
+  const resultado = new Set<string>();
+  for (const i of injecoesGrupoBc(itens)) {
+    const g = geradoraDaLinha(i.descricao);
+    if (g && ehUsinaGrupoBc(g, regra)) resultado.add(g);
+  }
+  for (const g of regra.incluir) resultado.add(g);
+  return resultado;
+}
+
 export interface CamposGrupoBc {
   valor_grupo_bc: number | null;
   desconto_grupo_bc: number | null;
